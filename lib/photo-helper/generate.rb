@@ -9,7 +9,7 @@ module PhotoHelper
 
     desc "jpeg", "generate jpeg from raw files"
     method_option :folder, aliases: "-f", type: :string, default: "."
-    method_option :dpi, type: :number, default: 350
+    method_option :dpi, type: :numeric, default: 350
     def jpeg(folder = nil)
       folder ||= options[:folder]
       puts folder

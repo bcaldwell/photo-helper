@@ -20,7 +20,7 @@ module PhotoHelper
       search_path = File.expand_path(folder)
       jpeg_path = File.join(search_path, "jpegs")
 
-      Dir.mkdir(jpeg_path) unless File.exists?(jpeg_path)
+      Dir.mkdir(jpeg_path) unless File.exist?(jpeg_path)
 
       files =
         if options[:recursive]
