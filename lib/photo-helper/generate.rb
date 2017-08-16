@@ -9,6 +9,7 @@ module PhotoHelper
 
     desc "jpeg", "generate jpeg from raw files"
     method_option :folder, aliases: "-f", type: :string, default: "."
+    method_option :dpi, type: :number, default: 350
     def jpeg(folder = nil)
       folder ||= options[:folder]
       puts folder
@@ -25,7 +26,7 @@ module PhotoHelper
         next if File.exists? File.join(search_path, jpeg_file_name)
         puts file
 
-        `sips -s format jpeg #{file} --out "./jpegs/#{jpeg_file_name}.JPG"`
+        `sips -s format jpeg #{file} -s dpiHeight #{options[:dpi]} -s dpiWidth #{options[:dpi]} --out "./jpegs/#{jpeg_file_name}.JPG"`
       end
       
 
