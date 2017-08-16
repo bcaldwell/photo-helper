@@ -30,17 +30,26 @@ module PhotoHelper
         end
 
       files.each do |file|
-        raw_file_name = File.basename(file.to_s, JPEG_EXTENSION) +  RAW_EXTENSION
+        raw_file_name = File.basename(file.to_s, JPEG_EXTENSION) + RAW_EXTENSION
         next unless File.exist? File.join(search_path, raw_file_name)
 
         puts file
 
         if options[:hard]
-          # File.delete(file)
+          File.delete(file)
         else
-          # File.trash(file)
+          File.trash(file)
         end
       end
+
+      next unless File.exist?(jpeg_path) && yes?("Delete jpeg folder?")
+      say "Deleting jpeg folder", :red
+      if options[:hard]
+        File.delete(jpeg_path)
+      else
+        File.trash(jpeg_path)
+      end
+
     end
   end
 end

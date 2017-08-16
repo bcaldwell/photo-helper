@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'photo-helper'
+require 'photo_helper'
 
 PhotoHelper::CLI.start(ARGV)
