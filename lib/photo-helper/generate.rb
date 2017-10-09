@@ -1,3 +1,5 @@
+# exiftool -b -previewimage 2017-09-24-seattle-23.ORF>hi.jpg
+
 module PhotoHelper
   class Generate < Thor
     include Thor::Actions
