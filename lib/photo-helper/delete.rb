@@ -20,8 +20,6 @@ module PhotoHelper
       search_path = File.expand_path(folder)
       jpeg_path = File.join(search_path, "jpegs")
 
-      Dir.mkdir(jpeg_path) unless File.exist?(jpeg_path)
-
       files =
         if options[:recursive]
           Dir["#{search_path}/**/*.#{JPEG_EXTENSION}"]
@@ -42,7 +40,7 @@ module PhotoHelper
         end
       end
 
-      next unless File.exist?(jpeg_path) && yes?("Delete jpeg folder?")
+      return unless File.exist?(jpeg_path) && yes?("Delete jpeg folder?")
       say "Deleting jpeg folder", :red
       if options[:hard]
         File.delete(jpeg_path)
