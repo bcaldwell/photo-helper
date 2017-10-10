@@ -1,3 +1,5 @@
+require "helpers/file_helper"
+
 module PhotoHelper
   class Instagram < Thor
     include Thor::Actions
@@ -34,7 +36,7 @@ module PhotoHelper
         pictures = []
 
         files.each do |file|
-        	folder = File.dirname(file).split("/").last.downcase
+        	folder = FileHelper.directory(file)
         	next unless PhotoHelper::Instagram.folders.include? (folder)
         	pictures.concat([file])
 	      end
