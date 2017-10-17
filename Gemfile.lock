@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    photo-helper (0.1.5)
+    photo-helper (0.1.6)
       mini_magick
       thor
 
