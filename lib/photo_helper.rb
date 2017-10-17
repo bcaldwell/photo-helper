@@ -7,6 +7,7 @@ require 'photo-helper/generate'
 require 'photo-helper/delete'
 require 'photo-helper/move'
 require 'photo-helper/instagram'
+require 'photo-helper/compress'
 
 # todo: move to config file
 # RAW_EXTENSION = "ORF"
@@ -30,5 +31,6 @@ module PhotoHelper
     register PhotoHelper::Delete, :delete, "delete", "Do something else"
     register PhotoHelper::Instagram, :instagram, "instagram", "Do something else"
     register PhotoHelper::Move, :move, "move", "Do something else"
+    register PhotoHelper::Compress, :compress, "compress", "Do something else"
   end
 end

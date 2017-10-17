@@ -37,13 +37,11 @@ module PhotoHelper
 
         files.each do |file|
         	folder = FileHelper.directory(file).downcase
-          puts folder
         	next unless PhotoHelper::Instagram.folders.include? (folder)
         	pictures.concat([file])
 	      end
         return unless pictures.any?
 
-	      puts pictures
       	PhotoHelper::Instagram.osascript <<-END
 				 tell application "Photos"
 				   activate

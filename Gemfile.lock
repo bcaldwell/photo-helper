@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     photo-helper (0.1.5)
+      mini_magick
       thor
 
 GEM
@@ -13,6 +14,7 @@ GEM
     byebug (9.0.6)
     coderay (1.1.1)
     method_source (0.8.2)
+    mini_magick (4.8.0)
     minitest (5.10.3)
     minitest-reporters (1.1.14)
       ansi
