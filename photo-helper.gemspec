@@ -30,4 +30,6 @@ Gem::Specification.new do |spec|
   
   spec.add_dependency "thor"
   spec.add_dependency "mini_magick"
+  spec.add_dependency "ejson"
+  spec.add_dependency "oauth"
 end

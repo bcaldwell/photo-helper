@@ -2,7 +2,9 @@ PATH
   remote: .
   specs:
     photo-helper (0.1.6)
+      ejson
       mini_magick
+      oauth
       thor
 
 GEM
@@ -13,6 +15,7 @@ GEM
     builder (3.2.3)
     byebug (9.0.6)
     coderay (1.1.1)
+    ejson (1.1.0)
     method_source (0.8.2)
     mini_magick (4.8.0)
     minitest (5.10.3)
@@ -21,6 +24,7 @@ GEM
       builder
       minitest (>= 5.0)
       ruby-progressbar
+    oauth (0.4.7)
     parallel (1.12.0)
     parser (2.4.0.0)
       ast (~> 2.2)
