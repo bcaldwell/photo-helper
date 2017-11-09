@@ -21,17 +21,6 @@ class Smugmug
 
     @http = get_access_token
     @uploader = get_access_token(UPLOAD_ENDPOINT)
-
-    puts http(:get, '/api/v2!authuser')["Response"]["User"]["ImageCount"]
-
-    upload_images(["/Users/bcaldwell/Downloads/1.jpg",
-      "/Users/bcaldwell/Downloads/2.jpg",
-      "/Users/bcaldwell/Downloads/3.jpg",
-      "/Users/bcaldwell/Downloads/4.jpg",
-      "/Users/bcaldwell/Downloads/5.jpg",
-      "/Users/bcaldwell/Downloads/6.jpg"],
-      "kxjXff"
-    )
   end
 
   def albums
@@ -66,7 +55,7 @@ class Smugmug
     resp.body
   end
 
-  def upload_images(images, album_id, headers={}, workers=4)
+  def upload_images(images, album_id, headers: {}, workers: 4)
     Parallel.each(images, in_processes: workers) do |image|
       upload(image, album_id, headers)
       puts "Done #{image}"
