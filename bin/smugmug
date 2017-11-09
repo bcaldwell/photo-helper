@@ -10,5 +10,7 @@ require 'photo_helper'
 
 require 'helpers/smugmug'
 
-Smugmug.new
+# s = Smugmug.new
+# puts s.albums_long
 
+puts "hi"
