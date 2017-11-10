@@ -49,8 +49,7 @@ class SmugmugAPI
   def albums_long(path = '', node_id = @root_node)
     album_list = []
     node_children(node_id)['Node'].each do |node|
-      node_path = File.join(path, node['Name'])
-      puts node_path
+      node_path = unless path.empty? then File.join(path, node['Name']) else node['Name'] end
       case node['Type']
       when 'Folder'
         album_list.concat(albums_long(node_path, node['NodeID']))
@@ -73,22 +72,106 @@ class SmugmugAPI
     get('/api/v2!authuser')['User']
   end
 
+  def images
+
+  end
+
   def folders
     folder_list = []
     resp = get('/api/v2/folder/user/bcaldwell!folderlist')
     resp['FolderList'].each do |folder|
       folder_list.push(name: folder['Name'],
+                       url_name: folder['UrlName'],      
                        web_uri: folder['UrlPath'],
                        uri: folder['Uri'],
+                       albums_url: folder["Uris"]["FolderAlbums"]["Uri"],                      
                        type: 'folder')
     end
     folder_list
   end
 
-  def http(method, url, headers = {}, _body = nil)
-    headers['Accept'] = 'application/json'
+  def get_or_create_album(path)
+    folder_path = File.dirname(path).split("/").map(&:capitalize).join("/")
+    album_name = File.basename(path).capitalize
+    album = nil
 
-    response = @http.request(method, url, headers)
+    folder = get_or_create_folder(folder_path)
+    byebug
+    resp = get(folder[:albums_url])
+    albums = get(folder[:albums_url])["Album"] if resp.has_key? "Album"
+    albums ||= []
+    albums.each do |album_raw|
+      if album_raw["Name"] == album_name
+        album = {
+          name: album_raw['Name'],
+          id: album_raw['AlbumKey'],
+          web_uri: album_raw['WebUri'],
+          images_uri: album_raw['Uris']['AlbumImages']['Uri'],
+          type: 'album'
+        }
+      end
+    end
+    
+    if album.nil?
+      url = "/api/v2/folder/user/#{@user}"
+      url += "/#{folder_path}" unless folder_path.empty?
+      url += "!albums"
+      resp = post(url, {
+        Name: album_name.capitalize,
+        UrlName: album_name.tr(" ", "-").capitalize,
+        Privacy: "Unlisted",
+      })
+      album_raw = resp["Album"]
+      album = {
+        name: album_raw['Name'],
+        id: album_raw['AlbumKey'],
+        web_uri: album_raw['WebUri'],
+        images_uri: album_raw['Uris']['AlbumImages']['Uri'],
+        type: 'album'
+      }
+
+    end
+    return album
+  end
+
+  def get_or_create_folder(path)
+    parts = path.split("/")
+    current_path = ""
+    folder = nil
+
+    parts.each do |part|
+      part = part.capitalize
+      new_path = unless current_path.empty? then File.join(current_path, part) else part end
+      resp = http_raw(:get, "/api/v2/folder/user/#{@user}/#{new_path}")
+      if resp.is_a? Net::HTTPSuccess
+        folder_raw = JSON.parse(resp.body)["Response"]["Folder"]
+        folder = {
+          name: folder_raw['Name'],
+          url_name: folder_raw['UrlName'],
+          web_uri: folder_raw['UrlPath'],
+          uri: folder_raw['Uri'],
+          albums_url: folder_raw["Uris"]["FolderAlbums"]["Uri"],
+          type: 'folder'
+        }
+      else
+        url = "/api/v2/folder/user/#{@user}"
+        url += "/#{current_path}" unless current_path.empty?
+        url += "!folders"
+        resp = post(url, {
+          Name: part.capitalize,
+          UrlName: part.tr(" ", "-").capitalize,
+          Privacy: "Unlisted",
+        })
+      end
+      current_path = new_path
+    end
+
+    return folder
+
+  end
+
+  def http(method, url, headers = {}, _body = nil)
+    response = http_raw(method, url, headers, _body)
     raise 'Request failed' unless response.is_a? Net::HTTPSuccess
     JSON.parse(response.body)['Response']
   end
@@ -97,6 +180,14 @@ class SmugmugAPI
     uri = URI.parse(url)
     uri.query = URI.encode_www_form(params) if params
     http(:get, uri.to_s, headers)
+  end
+
+  def post(url, body={}, headers={})
+  puts body
+    headers['Accept'] = 'application/json'  
+    response = @http.post(url, body, headers)
+    raise 'Request failed' unless response.is_a? Net::HTTPSuccess
+    JSON.parse(response.body)['Response']
   end
 
   def upload(image_path, album_id, headers = {})
@@ -126,6 +217,12 @@ class SmugmugAPI
 
   def get_access_token
     raise 'Not Implemented'
+  end
+
+  def http_raw(method, url, headers = {}, _body = nil)
+    headers['Accept'] = 'application/json'
+
+    @http.request(method, url, headers)
   end
 
   def get_access_token(endpoint = API_ENDPOINT)
