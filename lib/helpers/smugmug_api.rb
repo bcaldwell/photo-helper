@@ -170,6 +170,33 @@ class SmugmugAPI
 
   end
 
+  def images(album_id)
+    images = []
+    get("/api/v2/album/#{album_id}!images")["AlbumImage"].each do |image|
+      images.push(parse_image(image))
+    end
+    images
+  end
+
+  def image_list(album_id)
+    @images = images(album_id)
+    @images.map{|i| i[:filename]}
+  end
+
+  def parse_image(image)
+    {
+      title: image["Title"],
+      filename: image["FileName"],
+      caption: image["Caption"],
+      keywords: image["KeywordArray"],
+      id: image["ImageKey"],
+      md5: image["ArchivedMD5"],
+      uri: image["Uri"],
+      web_uri: image["WebUri"],
+      type: "image",
+    }
+  end
+
   def http(method, url, headers = {}, _body = nil)
     response = http_raw(method, url, headers, _body)
     raise 'Request failed' unless response.is_a? Net::HTTPSuccess

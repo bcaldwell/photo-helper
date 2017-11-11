@@ -13,4 +13,4 @@ require 'photo_helper'
 require 'helpers/smugmug_api'
 
 s = SmugmugAPI.new
-puts s.get_or_create_album("hello-there-7/testing-again/album 2017 2")
+puts s.image_list("xDT29x").sort
