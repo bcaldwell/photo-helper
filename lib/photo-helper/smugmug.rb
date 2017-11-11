@@ -1,11 +1,10 @@
 require 'helpers/smugmug_api'
 require 'date'
-require 'byebug'
+require 'helpers/image_helper'
 
 module PhotoHelper
   class Smugmug < Thor
     include Thor::Actions
-    # PATH_REGEX = %r{^.+Pictures/Pictures/(?<year>.+?(?=/))/(?<month>[0-9][0-9])_.+_(?<location>.+?(?=/))}
     PATH_REGEX = %r{^.+Pictures\/.+\/(\d{4})\/(\d{2})_.+\/[^_]+_([^\/]+)}
 
     map 's' => 'sync'
@@ -24,8 +23,8 @@ module PhotoHelper
           location = matches[3].split("_").map(&:capitalize).join(' ')
 
           folder = "#{month} #{year}"
-          album_name_short = "#{location} #{year}"
-          album_name = File.join(folder, album_name_short)
+          album_name_short = "#{location} #{month} #{year}"
+          album_name = File.join(year, month, album_name_short)
         else
           puts 'Unable to determine album from path'
           return
@@ -34,13 +33,16 @@ module PhotoHelper
       puts "Using album: #{album_name}"
 
       @smugmug = SmugmugAPI.new
-      album = @smugmug.get_or_create_album(album_name)
-      puts album
-
-      pictures = Dir["#{search_path}/**/*.JPG"]
+      album = @smugmug.get_or_create_album(album_name, album_url: location.downcase)
+      puts "#{album[:web_uri]}\n"
+      pictures = Dir["#{search_path}/**/*.JPG"]      
+      
+      # remove uploaded pictures
+      uploaded = @smugmug.image_list(album[:id])
+      pictures = pictures.reject { |p| (ImageHelper.color_class(p) == "Trash" or uploaded.include? File.basename(p)) }
       puts "Uploading #{pictures.count} jpegs"
 
-      @smugmug.upload_images(pictures, album[:id])
+      @smugmug.upload_images(pictures, album[:id], workers: 8)
     end
   end
 end

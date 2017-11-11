@@ -74,12 +74,7 @@ class SmugmugAPI
     folder_list = []
     resp = get('/api/v2/folder/user/bcaldwell!folderlist')
     resp['FolderList'].each do |folder|
-      folder_list.push(name: folder['Name'],
-                       url_name: folder['UrlName'],
-                       web_uri: folder['UrlPath'],
-                       uri: folder['Uri'],
-                       albums_url: folder['Uris']['FolderAlbums']['Uri'],
-                       type: 'folder')
+      folder_list.push(folder_parser(folder))
     end
     folder_list
   end
@@ -87,6 +82,7 @@ class SmugmugAPI
   def get_or_create_album(path, album_url: nil)
     folder_path = File.dirname(path).split('/').map(&:capitalize).join('/')
     album_name = File.basename(path).split(' ').map(&:capitalize).join(' ')
+    puts album_name
     album = nil
 
     folder = get_or_create_folder(folder_path)
@@ -102,9 +98,18 @@ class SmugmugAPI
       url = "/api/v2/folder/user/#{@user}"
       url += "/#{folder_path}" unless folder_path.empty?
       url += '!albums'
-      resp = post(url, Name: album_name.capitalize,
-                       UrlName: album_name.tr(' ', '-').capitalize,
-                       Privacy: 'Unlisted')
+      album_url = album_name if album_url.nil?
+      resp = post(url, Name: album_name,
+                       UrlName: album_url.tr(' ', '-').capitalize,
+                       Privacy: 'Unlisted',
+                       SmugSearchable: "No",
+                       SortMethod: "Date Taken",
+                       LargestSize: "X4Large",
+                       SortDirection: "Ascending",
+                       WorldSearchable: false,
+                       EXIF: false,
+                       Printable: false,
+                       Filenames: true)
       album_raw = resp['Album']
       album = album_parser(album_raw)
     end
@@ -140,8 +145,16 @@ class SmugmugAPI
 
   def images(album_id)
     images = []
-    get("/api/v2/album/#{album_id}!images")['AlbumImage'].each do |image|
-      images.push(parse_image(image))
+    start = 1
+    count = 100
+    loop do
+      images_raw = get("/api/v2/album/#{album_id}!images", start: start, count: count)
+      return [] unless images_raw.key? 'AlbumImage'
+      images_raw['AlbumImage'].each do |image|
+        images.push(imager_parser(image))
+      end
+      break if (start + count) > images_raw['Pages']['Total'].to_i
+      start += count
     end
     images
   end
@@ -149,20 +162,6 @@ class SmugmugAPI
   def image_list(album_id)
     @images = images(album_id)
     @images.map { |i| i[:filename] }
-  end
-
-  def parse_image(image)
-    {
-      title: image['Title'],
-      filename: image['FileName'],
-      caption: image['Caption'],
-      keywords: image['KeywordArray'],
-      id: image['ImageKey'],
-      md5: image['ArchivedMD5'],
-      uri: image['Uri'],
-      web_uri: image['WebUri'],
-      type: 'image'
-    }
   end
 
   def http(method, url, headers = {}, _body = nil)
@@ -182,7 +181,7 @@ class SmugmugAPI
     url.tr!(' ', '-')
     headers['Accept'] = 'application/json'
     response = @http.post(url, body, headers)
-    raise 'Request failed' unless response.is_a? Net::HTTPSuccess
+    raise "Request failed\n#{response.body}" unless response.is_a? Net::HTTPSuccess
     JSON.parse(response.body)['Response']
   end
 
@@ -204,17 +203,16 @@ class SmugmugAPI
 
   def upload_images(images, album_id, headers = {}, workers: 4)
     counter = 0
-    Parallel.each(images, in_threads: workers) do |image|
-      # puts image
+    Parallel.each(images, in_processes: workers) do |image|
       upload(image, album_id, headers)
       counter += 1
-      puts "#{counter}/#{images.count} Done #{image}"
+      puts "#{counter}/#{images.count / workers} Done #{image}"
     end
   end
 
   private
 
-  def get_access_token
+  def request_access_token
     raise 'Not Implemented'
   end
 
@@ -252,5 +250,19 @@ class SmugmugAPI
       web_uri: album['WebUri'],
       images_uri: album['Uris']['AlbumImages']['Uri'],
       type: 'album' }
+  end
+
+  def imager_parser(image)
+    {
+      title: image['Title'],
+      filename: image['FileName'],
+      caption: image['Caption'],
+      keywords: image['KeywordArray'],
+      id: image['ImageKey'],
+      md5: image['ArchivedMD5'],
+      uri: image['Uri'],
+      web_uri: image['WebUri'],
+      type: 'image'
+    }
   end
 end

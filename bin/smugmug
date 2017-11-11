@@ -1,9 +1,8 @@
 #!/usr/bin/env ruby
 
-require "bundler/setup"
+require 'bundler/setup'
 require 'byebug'
-require "pp"
-
+require 'pp'
 
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
@@ -13,4 +12,4 @@ require 'photo_helper'
 require 'helpers/smugmug_api'
 
 s = SmugmugAPI.new
-puts s.image_list("xDT29x").sort
+puts s.image_list('xDT29x').sort
