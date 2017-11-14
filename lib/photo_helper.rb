@@ -11,8 +11,8 @@ require 'photo-helper/compress'
 require 'photo-helper/smugmug'
 
 # todo: move to config file
-# RAW_EXTENSION = "ORF"
 RAW_EXTENSION = "dng"
+RAW_EXTENSIONS = RAW_EXTENSION.concat(["ORF"])
 JPEG_EXTENSION = "JPG"
 JPEG_EXTENSIONS = ["JPG", "jpg", "jpeg"]
 IMAGE_EXTENSIONS = JPEG_EXTENSIONS.concat([])
