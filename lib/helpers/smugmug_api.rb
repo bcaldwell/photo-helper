@@ -12,7 +12,7 @@ class SmugmugAPI
   ACCESS_TOKEN_URL = '/services/oauth/1.0a/getAccessToken'.freeze
   AUTHORIZE_URL = '/services/oauth/1.0a/authorize'.freeze
   API_ENDPOINT = 'https://api.smugmug.com'.freeze
-  UPLOAD_ENDPOINT = 'http://upload.smugmug.com/'.freeze
+  UPLOAD_ENDPOINT = 'https://upload.smugmug.com/'.freeze
 
   def initialize(ejson_file = '~/.photo_helper.ejson')
     ejson_file = File.expand_path(ejson_file)

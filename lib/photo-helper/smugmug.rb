@@ -33,9 +33,9 @@ module PhotoHelper
       puts "Using album: #{album_name}"
 
       @smugmug = SmugmugAPI.new
-      album = @smugmug.get_or_create_album(album_name, album_url: location.downcase)
+      album = @smugmug.get_or_create_album(album_name, album_url: location&.downcase)
       puts "#{album[:web_uri]}\n"
-      pictures = Dir["#{search_path}/**/*.JPG"]      
+      pictures = Dir["#{search_path}/**/*.{#{IMAGE_EXTENSIONS.join(",")}}"]      
       
       # remove uploaded pictures
       uploaded = @smugmug.image_list(album[:id])

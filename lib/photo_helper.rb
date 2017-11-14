@@ -14,6 +14,8 @@ require 'photo-helper/smugmug'
 # RAW_EXTENSION = "ORF"
 RAW_EXTENSION = "dng"
 JPEG_EXTENSION = "JPG"
+JPEG_EXTENSIONS = ["JPG", "jpg", "jpeg"]
+IMAGE_EXTENSIONS = JPEG_EXTENSIONS.merge([])
 PHOTOS_ROOT = "/Users/benjamincaldwell/Pictures/Pictures"
 JPEG_ROOT ="/Users/benjamincaldwell/Pictures/jpegs"
 IGNORE_FOLDERS = ["instagram", "exported", "edited"]
@@ -25,7 +27,7 @@ module PhotoHelper
 
     desc "version", "displays installed version"
     def version
-      puts KubeDeploy::VERSION
+      puts PhotoHelper::VERSION
     end
 
     register PhotoHelper::Generate, :generate, "generate", "Do something else"
