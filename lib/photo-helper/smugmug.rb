@@ -44,5 +44,32 @@ module PhotoHelper
 
       @smugmug.upload_images(pictures, album[:id], workers: 8)
     end
+    
+    desc 'oauth', "fetch oauth credentials"
+    def oauth()
+      SmugmugAPI.new.request_access_token
+    end
+
+    desc 'albums', "list albums with their weburl"
+    method_option :folder, aliases: '-f', type: :string, default: '.'
+    def albums(folder = nil, album_name = nil)
+      @smugmug = SmugmugAPI.new
+      albums = @smugmug.albums_long
+
+      current_month = albums.first[:path].split("/")[1]
+      output = ["# Photos", "## #{current_month}"]
+
+      albums.each do |a|
+        month = a[:path].split("/")[1]
+        next unless month
+        if month != current_month
+          current_month = month
+          output.push("## #{current_month}")
+        end
+        output.push("[#{a[:name]}](#{a[:web_uri].gsub('http://', 'https://')})")
+      end
+
+      puts output.join("\n\n")
+    end
   end
 end

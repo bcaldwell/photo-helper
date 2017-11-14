@@ -7,4 +7,6 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 require 'photo_helper'
 
+require 'byebug'
+
 PhotoHelper::CLI.start(ARGV)

@@ -17,7 +17,7 @@ class SmugmugAPI
   def initialize(ejson_file = '~/.photo_helper.ejson')
     ejson_file = File.expand_path(ejson_file)
     @secrets = Secrets.new(ejson_file, %i[api_key api_secret])
-    get_access_token if !@secrets.access_token || !@secrets.access_secret
+    request_access_token if !@secrets["access_token"] || !@secrets["access_secret"]
 
     @http = get_access_token
     @uploader = get_access_token(UPLOAD_ENDPOINT)
@@ -54,7 +54,8 @@ class SmugmugAPI
                         name: node['Name'],
                         web_uri: node['WebUri'],
                         node_uri: node['Uri'],
-                        id: File.basename(node['Uris']['Album']['Uri']))
+                        id: File.basename(node['Uris']['Album']['Uri']),
+                        type: 'node')
       end
     end
     album_list
@@ -102,10 +103,10 @@ class SmugmugAPI
       resp = post(url, Name: album_name,
                        UrlName: album_url.tr(' ', '-').capitalize,
                        Privacy: 'Unlisted',
-                       SmugSearchable: "No",
-                       SortMethod: "Date Taken",
-                       LargestSize: "X4Large",
-                       SortDirection: "Ascending",
+                       SmugSearchable: 'No',
+                       SortMethod: 'Date Taken',
+                       LargestSize: 'X4Large',
+                       SortDirection: 'Ascending',
                        WorldSearchable: false,
                        EXIF: false,
                        Printable: false,
@@ -210,11 +211,37 @@ class SmugmugAPI
     end
   end
 
-  private
-
   def request_access_token
-    raise 'Not Implemented'
+    @consumer = OAuth::Consumer.new(@secrets.api_key, @secrets.api_secret,
+                                    site: OAUTH_ORIGIN,
+                                    name: 'photo-helper',
+                                    request_token_path: REQUEST_TOKEN_URL,
+                                    authorize_path: AUTHORIZE_URL,
+                                    access_token_path: ACCESS_TOKEN_URL)
+
+    # Generate request token
+    @request_token = @consumer.get_request_token
+
+    # Get authorize URL
+    @request_token.authorize_url
+
+    url = add_auth_params(@request_token.authorize_url, 'Access' => 'Full', 'Permissions' => 'Modify')
+
+    puts "Go to #{url} and enter shown 6 digit number:"
+    verifier = STDIN.gets.strip
+
+    # Now go to that url and when you're done authorization you can run the
+    # following command where you put in the value for oauth_verifier that you got
+    # from completely the above URL request:
+    access_token = @request_token.get_access_token(oauth_verifier: verifier)
+
+    puts "Add the following to your ejson file #{@secrets.ejson_config_file}:"
+    puts "\"access_token\": \"#{access_token.token}\","
+    puts "\"access_secret\": \"#{access_token.secret}\""
+    exit 0
   end
+
+  private
 
   def http_raw(method, url, headers = {}, _body = nil)
     url.tr!(' ', '-')
@@ -264,5 +291,13 @@ class SmugmugAPI
       web_uri: image['WebUri'],
       type: 'image'
     }
+  end
+
+  def add_auth_params(url, params)
+    uri = URI.parse(url)
+    new_query_ar = URI.decode_www_form(uri.query || '')
+    params.to_a.each { |el| new_query_ar << el }
+    uri.query = URI.encode_www_form(new_query_ar)
+    uri.to_s
   end
 end

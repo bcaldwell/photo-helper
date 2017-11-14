@@ -5,7 +5,10 @@ require 'pathname'
 require 'json'
 
 class Secrets
+  attr_reader :ejson_config_file
+
   def initialize(config_file = nil, required = [])
+    @ejson_config_file = config_file
     @secrets = {}
     unless config_file.nil?
       load_from_ejson(config_file)
@@ -50,6 +53,10 @@ class Secrets
 
   def check_required(required = [])
     required.each { |key| raise "required secrets not set: #{key}" if @secrets[key].nil? }
+  end
+
+  def [](key)
+    @secrets[key.to_sym]
   end
 
   def method_missing(key, *args)
