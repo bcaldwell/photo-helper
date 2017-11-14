@@ -15,7 +15,6 @@ module PhotoHelper
     method_option :dry_run, aliases: '-d', type: :boolean, default: false
     def sync(folder = nil, album_name = nil)
       search_path = File.expand_path(folder)
-      puts search_path
       unless album_name
         if matches = "#{search_path}/".to_s.match(PATH_REGEX)
           year = matches[1]

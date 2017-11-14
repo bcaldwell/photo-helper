@@ -21,7 +21,7 @@ module PhotoHelper
 
       Dir.mkdir(jpeg_path) unless File.exist?(jpeg_path)
 
-      files = Dir["#{search_path}/*.{#{RAW_EXTENSIONS}.join(','))}"]
+      files = Dir["#{search_path}/*.{#{RAW_EXTENSIONS.join(',')}}"]
 
       files.each do |file|
         jpeg_file_name = File.basename(file.to_s, ".*") + JPEG_EXTENSION
