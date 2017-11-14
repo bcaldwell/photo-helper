@@ -26,9 +26,10 @@ module PhotoHelper
       files.each do |file|
         jpeg_file_name = File.basename(file.to_s, ".*") + JPEG_EXTENSION
         next if File.exist? File.join(search_path, jpeg_file_name)
+        next if File.exist? "./jpegs/#{jpeg_file_name}"
         puts file
 
-        `sips -s format jpeg #{file} -s dpiHeight #{options[:dpi]} -s dpiWidth #{options[:dpi]} --out "./jpegs/#{jpeg_file_name}.JPG"`
+        `sips -s format jpeg #{file} -s dpiHeight #{options[:dpi]} -s dpiWidth #{options[:dpi]} --out "./jpegs/#{jpeg_file_name}"`
       end
     end
   end
