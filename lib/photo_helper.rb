@@ -15,7 +15,7 @@ require 'photo-helper/smugmug'
 RAW_EXTENSION = "dng"
 JPEG_EXTENSION = "JPG"
 JPEG_EXTENSIONS = ["JPG", "jpg", "jpeg"]
-IMAGE_EXTENSIONS = JPEG_EXTENSIONS.merge([])
+IMAGE_EXTENSIONS = JPEG_EXTENSIONS.concat([])
 PHOTOS_ROOT = "/Users/benjamincaldwell/Pictures/Pictures"
 JPEG_ROOT ="/Users/benjamincaldwell/Pictures/jpegs"
 IGNORE_FOLDERS = ["instagram", "exported", "edited"]
