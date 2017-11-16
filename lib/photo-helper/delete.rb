@@ -22,9 +22,9 @@ module PhotoHelper
 
       files =
         if options[:recursive]
-          Dir["#{search_path}/**/*.{#{JPEG_EXTENSIONS.join(",")}}"]
+          Dir["#{search_path}/**/*.{#{JPEG_EXTENSIONS.join(',')}}"]
         else
-          Dir["#{search_path}/*.{#{JPEG_EXTENSIONS.join(",")}}"]
+          Dir["#{search_path}/*.{#{JPEG_EXTENSIONS.join(',')}}"]
         end
 
       files.each do |file|
