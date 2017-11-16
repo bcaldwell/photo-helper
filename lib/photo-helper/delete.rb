@@ -1,4 +1,5 @@
 require 'helpers/trash'
+require 'helpers/file_helper'
 
 module PhotoHelper
   class Delete < Thor
@@ -28,9 +29,12 @@ module PhotoHelper
         end
 
       files.each do |file|
-        raw_file_name = File.basename(file.to_s, JPEG_EXTENSION) + RAW_EXTENSION
-        next unless File.exist? File.join(search_path, raw_file_name)
-
+        has_raw = false
+        RAW_EXTENSIONS.each do |extension|
+          raw_file_name = "#{File.basename(file.to_s, '.*')}.#{extension}"
+          has_raw = true if File.exist? File.join(File.dirname(file.to_s), raw_file_name)
+        end
+        next if FileHelper.ingore_file?(file)
         puts file
 
         if options[:hard]

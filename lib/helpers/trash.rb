@@ -16,7 +16,7 @@ class File
         FileUtils.mv(filename,"/Volumes/#{$1}/.Trashes/501/")
       else
         # Main drive, move to ~/.Trash/
-        FileUtils.mv(filename,self.expand_path("~/.Trash/"))
+        FileUtils.mv(filename,self.expand_path("~/.Trash"))
       end
     # when /^Microsoft Windows/
     #   raise NotImplementedError, ""
