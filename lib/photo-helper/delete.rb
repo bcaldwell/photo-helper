@@ -34,6 +34,7 @@ module PhotoHelper
           raw_file_name = "#{File.basename(file.to_s, '.*')}.#{extension}"
           has_raw = true if File.exist? File.join(File.dirname(file.to_s), raw_file_name)
         end
+        next unless has_raw
         next if FileHelper.ingore_file?(file)
         puts file
 
