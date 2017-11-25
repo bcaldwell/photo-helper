@@ -19,11 +19,13 @@ IMAGE_EXTENSIONS = JPEG_EXTENSIONS.concat([])
 PHOTOS_ROOT = "/Users/benjamincaldwell/Pictures/Pictures"
 JPEG_ROOT ="/Users/benjamincaldwell/Pictures/jpegs"
 IGNORE_FOLDERS = ["instagram", "exported", "edited"]
+SELECT_COLOR_TAGS = ["Winner", "Winner alt", "Superior", "Superior alt"]
 
 module PhotoHelper
   class CLI < Thor
     map "g" => "generate"
     map "d" => "delete"
+    map "s" => "smugmug"
 
     desc "version", "displays installed version"
     def version

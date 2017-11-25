@@ -9,6 +9,6 @@ class FileHelper
 
   def self.is_jpeg?(path)
     extension = File.extname(path)
-    ['.jpeg', '.jpg'].include? extension.downcase
+    JPEG_EXTENSIONS.include? extension.downcase
   end
 end
