@@ -1,7 +1,7 @@
 class ImageHelper
   IMAGE_CLASS_REGEX = %r{xmp:Label="(.+)"}
   RATING_REGEX = %r{xmp:Rating="(.+)"}
-    
+
   def self.xmp(image)
     xmp = File.join(File.dirname(image), File.basename(image, ".*") + ".XMP")
     return unless File.exists?(xmp)
@@ -10,6 +10,7 @@ class ImageHelper
 
   def self.color_class(image)
     contents = xmp(image)
+    return if contents.nil?
     matches = contents.match(IMAGE_CLASS_REGEX)
     matches[1] if matches
   end

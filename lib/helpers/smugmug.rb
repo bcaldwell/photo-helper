@@ -6,12 +6,12 @@ class SmugmugHelper
   attr_accessor :smugmug_api
 
   # to figure out what to delete, read all xmp files, loop through uploaded files and check xmp file
-  
+
   PATH_REGEX = %r{^.+Pictures\/.+\/(\d{4})\/(\d{2})_.+\/[^_]+_([^\/]+)}
-  
+
   def initialize(search_path)
     @search_path = search_path
-    @smugmug = SmugmugAPI.new    
+    @smugmug = SmugmugAPI.new
   end
 
   def parse_path
@@ -38,30 +38,54 @@ class SmugmugHelper
     Dir["#{@search_path}/**/*.{#{IMAGE_EXTENSIONS.join(",")}}"].reject{ |p| FileHelper.ingore_file?(p) }
   end
 
-  def merge_exported(images = image_list)
+  def merge_exported(images = image_list, concat = false)
     exported = Dir["#{@search_path}/**/{Exported,exported}/*.{#{IMAGE_EXTENSIONS.join(",")}}"]
-    exported_basenames = exported.map{ |p| File.basename(p, ".*") }
-    images = images.reject { |p| exported_basenames.include? File.basename(p, ".*") }
+    unless concat
+      exported_basenames = exported.map{ |p| File.basename(p, ".*") }
+      images = images.reject { |p| exported_basenames.include? File.basename(p, ".*") }
+    end
     images.concat(exported)
   end
 
   def upload(album_name, pictures, reject_trash = true)
     album = @smugmug.get_or_create_album(album_name, album_url: @location&.downcase)
     puts "#{album[:web_uri]}\n"
-    
+
     # remove uploaded pictures
     uploaded = @smugmug.image_list(album[:id])
-    
+    # loop through and create hash for keywords to add {exported: [], instagram: []}
     pictures = pictures.reject do |p|
       if reject_trash
         return true if ImageHelper.color_class(p) == "Trash"
       end
       uploaded.include? File.basename(p)
     end
-    
+
     puts "Uploading #{pictures.count} jpegs"
 
-    @smugmug.upload_images(pictures, album[:id], workers: 8)
+    @smugmug.upload_images(pictures, album[:id], {"X-Smug-Keywords" => [""]}, workers: 8)
+  end
+
+  def delete(album_name, reject_trash = true)
+    album = @smugmug.get_or_create_album(album_name, album_url: @location&.downcase)
+    puts "#{album[:web_uri]}\n"
+
+    # remove uploaded pictures
+    uploaded = @smugmug.images(album[:id])
+
+    extensions = (JPEG_EXTENSIONS).concat(RAW_EXTENSIONS)
+    xmp_files = Dir["#{@search_path}/**/*.XMP"]
+    files = Dir["#{@search_path}/**/*.#{extensions.join(",")}"].map{ |f| File.basename(f, ".*")}
+    uploaded.each do |image|
+      # dont search, guess file name and check
+      basename = File.basename(image[:filename], ".*")
+      full_path = File.join(@search_path, image[:filename])
+      next if files.include? basename
+# if File.exists? full_path
+      byebug
+      next unless ImageHelper.color_class(full_path) == "Trash"
+      puts "Delete #{image[:filename]}"
+    end
   end
 
   def upload_dl
@@ -69,7 +93,10 @@ class SmugmugHelper
     @album_name = File.join("dl", @album_name)
 
     puts "Uploading all images to album #{@album_name}"
-    upload(@album_name, image_list)
+    pictures = merge_exported(image_list, true)
+    upload(@album_name, pictures)
+    # delete(@album_name)
+    byebug
   end
 
   def upload_select
@@ -80,5 +107,6 @@ class SmugmugHelper
 
     puts "Uploading selects to album #{@album_name}"
     upload(@album_name, pictures)
+    # delete(@album_name)
   end
 end
