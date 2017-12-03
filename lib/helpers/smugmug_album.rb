@@ -1,6 +1,9 @@
 require "helpers/smugmug_api"
 require "helpers/image_helper"
 require "helpers/file_helper"
+require 'set'
+
+require 'byebug'
 
 class SmugmugAlbumHelper
   attr_accessor :smugmug_api
@@ -8,10 +11,10 @@ class SmugmugAlbumHelper
   # to figure out what to delete, read all xmp files, loop through uploaded files and check xmp file
 
   PATH_REGEX = %r{^.+Pictures\/.+\/(\d{4})\/(\d{2})_.+\/[^_]+_([^\/]+)}
-  KEYWORD_WHITELIST = ["exported", "instagram"]
+  KEYWORD_WHITELITS = ["instagram", "exported"]
 
   def initialize(search_path, album = nil)
-    @search_path = search_path
+    @search_path = Pathname.new(search_path)
     @smugmug = SmugmugAPI.new
 
     @album_name = album || album_name
@@ -21,6 +24,7 @@ class SmugmugAlbumHelper
     @dl_album_name = File.join("dl", @album_name)
     @dl_album = @smugmug.get_or_create_album(@dl_album_name, album_url: @location&.downcase)
 
+    @keyword_list = Set.new
   end
 
   def parse_path
@@ -74,10 +78,12 @@ class SmugmugAlbumHelper
     uploaded_hash
   end
 
-  def image_list_to_hash(images, tags = nil)
+  def image_list_to_hash(images)
     image_list_hash = {}
     images.each do |i|
       filename = File.basename(i, ".*")
+      tags = image_dir_keywords(i)
+      @keyword_list.merge(tags) if tags
       push_hash_array(image_list_hash, filename, {
         file: i,
         keywords: tags,
@@ -92,26 +98,26 @@ class SmugmugAlbumHelper
 
     to_upload = {}
     to_update = {}
+    to_delete = []
 
     image_list_hash.each do |filename, images|
       images.each do |image|
         next unless ImageHelper.is_jpeg?(image[:file])
         next if reject_trash && ImageHelper.color_class(image[:file]) == "Trash"
 
-        upload_image =
-          if uploaded_hash.key?(filename)
-            !uploaded_hash[filename].any? do |uploaded|
-              if image[:keywords].nil?
-                #  || uploaded[:keywords].nil?
-                # & returns if in both arrays
-                KEYWORD_WHITELIST & uploaded[:keywords] == []
-              else
-                image[:keywords] - uploaded[:keywords] == []
-              end
-            end
-          else
-            true
+        upload_image = true
+        update_image = false
+
+        if uploaded_hash.key?(filename)
+          !uploaded_hash[filename].each do |uploaded|
+            next unless uploaded_match_requested?(image, uploaded)
+
+              # & returns if in both arrays
+            upload_image = false
+            update_image = true if uploaded[:md5] != image[:md5]
+            break
           end
+        end
 
         if upload_image
           push_hash_array(to_upload, image[:keywords], image[:file])
@@ -119,9 +125,32 @@ class SmugmugAlbumHelper
       end
     end
 
+    uploaded_hash.each do |filename, uploaded_images|
+      byebug if filename == "17Nov20-olympic_park-137"
+      uploaded_images.each do |uploaded|
+        if image_list_hash.key?(filename)
+          image_hash = image_list_hash[filename].find do |image|
+            uploaded_match_requested?(image, uploaded)
+          end
+          to_delete.push(uploaded) if image_hash.nil?
+          to_delete.push(uploaded) if reject_trash && ImageHelper.color_class(image_hash[:file]) == "Trash"
+        else
+          to_delete.push(uploaded)
+        end
+      end
+    end
+
     to_upload.each do |keywords, images|
       puts keywords
       upload(album, images, true, keywords)
+    end
+
+    if to_delete.any?
+      puts "Deleting #{to_delete.count} images"
+      to_delete.each do |uploaded|
+        puts uploaded[:filename]
+        @smugmug.http(:delete, uploaded[:uri])
+      end
     end
   end
 
@@ -170,13 +199,14 @@ class SmugmugAlbumHelper
   end
 
   def upload_dl
+    @keyword_list = Set.new
     puts "Uploading all images to album #{@album_name} --> #{@dl_album[:web_uri]}\n"
 
     uploaded_hash = uploaded_to_hash(@dl_album)
 
     @image_list = image_list_to_hash(image_list)
-    @image_list = merge_hash_array(@image_list, image_list_to_hash(exported_list, ["exported"]))
-    @image_list = merge_hash_array(@image_list, image_list_to_hash(instagram_list, ["instagram"]))
+    @image_list = merge_hash_array(@image_list, image_list_to_hash(exported_list))
+    @image_list = merge_hash_array(@image_list, image_list_to_hash(instagram_list))
 
 
     # upload(@dl_album, exported_list, false, ["exported"])
@@ -186,8 +216,10 @@ class SmugmugAlbumHelper
   end
 
   def upload_select
+    @keyword_list = Set.new
+
     pictures = image_list
-    pictures = pictures.select{ |p| ImageHelper.is_select?(p)}
+    pictures = pictures.select{ |p| ImageHelper.is_select?(p) }
     pictures = merge_exported(pictures)
 
     puts "Uploading selects to album #{@album_name} --> #{@album[:web_uri]}\n"
@@ -211,5 +243,23 @@ class SmugmugAlbumHelper
       hash1[key].concat(value)
     end
     hash1
+  end
+
+  def image_dir_keywords(image)
+    rel = Pathname.new(image).relative_path_from(@search_path).to_s.split("/")
+    # ignore first and last parts
+    rel &= KEYWORD_WHITELITS
+    return nil if rel.empty?
+    rel
+  end
+
+  def uploaded_match_requested?(image, uploaded)
+    if image[:keywords].nil?
+      # empty from keyword list
+      return true if uploaded[:keywords].nil? || @keyword_list & uploaded[:keywords] == Set.new
+    else
+      return true if image[:keywords] - uploaded[:keywords] == []
+    end
+    false
   end
 end

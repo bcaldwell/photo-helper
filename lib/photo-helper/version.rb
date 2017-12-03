@@ -1,3 +1,3 @@
 module KubeDeploy
-  VERSION = '0.2.10'.freeze
+  VERSION = '0.3'.freeze
 end
