@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'helpers/secrets'
 require 'oauth'
 require 'uri'
@@ -7,16 +8,16 @@ require 'parallel'
 
 class SmugmugAPI
   attr_accessor :http, :uploader
-  OAUTH_ORIGIN = 'https://secure.smugmug.com'.freeze
-  REQUEST_TOKEN_URL = '/services/oauth/1.0a/getRequestToken'.freeze
-  ACCESS_TOKEN_URL = '/services/oauth/1.0a/getAccessToken'.freeze
-  AUTHORIZE_URL = '/services/oauth/1.0a/authorize'.freeze
-  API_ENDPOINT = 'https://api.smugmug.com'.freeze
-  UPLOAD_ENDPOINT = 'https://upload.smugmug.com/'.freeze
+  OAUTH_ORIGIN = 'https://secure.smugmug.com'
+  REQUEST_TOKEN_URL = '/services/oauth/1.0a/getRequestToken'
+  ACCESS_TOKEN_URL = '/services/oauth/1.0a/getAccessToken'
+  AUTHORIZE_URL = '/services/oauth/1.0a/authorize'
+  API_ENDPOINT = 'https://api.smugmug.com'
+  UPLOAD_ENDPOINT = 'https://upload.smugmug.com/'
 
   def initialize(ejson_file = '~/.photo_helper.ejson')
     ejson_file = File.expand_path(ejson_file)
-    @secrets = Secrets.new(ejson_file, %i[api_key api_secret])
+    @secrets = Secrets.new(ejson_file, %i(api_key api_secret))
     request_access_token if !@secrets["access_token"] || !@secrets["access_secret"]
 
     @http = get_access_token
@@ -68,8 +69,6 @@ class SmugmugAPI
   def user
     get('/api/v2!authuser')['User']
   end
-
-  def images; end
 
   def folders
     folder_list = []
@@ -164,8 +163,8 @@ class SmugmugAPI
     @images.map { |i| i[:filename] }
   end
 
-  def http(method, url, headers = {}, _body = nil)
-    response = http_raw(method, url, headers, _body)
+  def http(method, url, headers = {}, body = nil)
+    response = http_raw(method, url, headers, body)
     raise 'Request failed' unless response.is_a? Net::HTTPSuccess
     JSON.parse(response.body)['Response']
   end
@@ -197,7 +196,7 @@ class SmugmugAPI
                    'X-Smug-FileName' => File.basename(image_path),
                    'Content-MD5' => Digest::MD5.file(image_path).hexdigest)
 
-    headers.merge!('X-Smug-Title' => File.basename(image_path, ".*")) if filename_as_title
+    headers['X-Smug-Title'] = File.basename(image_path, ".*") if filename_as_title
 
     resp = @uploader.post('/', image, headers)
     resp.body
@@ -214,11 +213,11 @@ class SmugmugAPI
 
   def request_access_token
     @consumer = OAuth::Consumer.new(@secrets.api_key, @secrets.api_secret,
-                                    site: OAUTH_ORIGIN,
-                                    name: 'photo-helper',
-                                    request_token_path: REQUEST_TOKEN_URL,
-                                    authorize_path: AUTHORIZE_URL,
-                                    access_token_path: ACCESS_TOKEN_URL)
+      site: OAUTH_ORIGIN,
+      name: 'photo-helper',
+      request_token_path: REQUEST_TOKEN_URL,
+      authorize_path: AUTHORIZE_URL,
+      access_token_path: ACCESS_TOKEN_URL)
 
     # Generate request token
     @request_token = @consumer.get_request_token

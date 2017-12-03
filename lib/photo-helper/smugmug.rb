@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'helpers/smugmug_album'
 require 'date'
 require 'helpers/image_helper'
@@ -11,7 +12,7 @@ module PhotoHelper
     method_option :folder, aliases: '-f', type: :string, default: '.'
     method_option :recursive, aliases: '-r', type: :boolean, default: false
     method_option :dry_run, aliases: '-d', type: :boolean, default: false
-    def sync(folder = nil, album_name = nil)
+    def sync(folder = nil, _album_name = nil)
       search_path = File.expand_path(folder)
 
       @smugmug = SmugmugAlbumHelper.new(search_path)
@@ -26,13 +27,12 @@ module PhotoHelper
     end
 
     desc 'oauth', "fetch oauth credentials"
-    def oauth()
+    def oauth
       SmugmugAPI.new.request_access_token
     end
 
     desc 'albums', "list albums with their weburl"
-    method_option :folder, aliases: '-f', type: :string, default: '.'
-    def albums(folder = nil, album_name = nil)
+    def albums
       @smugmug = SmugmugAPI.new
       albums = @smugmug.albums_long
 

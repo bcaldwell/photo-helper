@@ -1,10 +1,11 @@
+# frozen_string_literal: true
 class ImageHelper
-  IMAGE_CLASS_REGEX = %r{xmp:Label="(.+)"}
-  RATING_REGEX = %r{xmp:Rating="(.+)"}
+  IMAGE_CLASS_REGEX = /xmp:Label="(.+)"/
+  RATING_REGEX = /xmp:Rating="(.+)"/
 
   def self.xmp(image)
     xmp = File.join(File.dirname(image), File.basename(image, ".*") + ".XMP")
-    return unless File.exists?(xmp)
+    return unless File.exist?(xmp)
     File.read(xmp)
   end
 
