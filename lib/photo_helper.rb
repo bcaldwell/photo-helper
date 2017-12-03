@@ -22,7 +22,7 @@ BEST_OF_ROOT = File.expand_path("~/Pictures/Pictures/Best\ of")
 SCREENSAVER_ROOT = File.expand_path("~/Pictures/screensaver")
 JPEG_ROOT = File.expand_path("~/Pictures/jpegs")
 IGNORE_FOLDERS = ["instagram", "exported", "edited"]
-SELECT_COLOR_TAGS = ["Winner", "Winner alt", "Superior", "Superior alt"]
+SELECT_COLOR_TAGS = ["Winner", "Winner alt", "Superior", "Superior alt", "Typical", "Typical alt"]
 
 module PhotoHelper
   class CLI < Thor

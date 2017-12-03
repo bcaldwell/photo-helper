@@ -3,8 +3,6 @@ require "helpers/image_helper"
 require "helpers/file_helper"
 require 'set'
 
-require 'byebug'
-
 class SmugmugAlbumHelper
   attr_accessor :smugmug_api
 
@@ -126,7 +124,6 @@ class SmugmugAlbumHelper
     end
 
     uploaded_hash.each do |filename, uploaded_images|
-      byebug if filename == "17Nov20-olympic_park-137"
       uploaded_images.each do |uploaded|
         if image_list_hash.key?(filename)
           image_hash = image_list_hash[filename].find do |image|
