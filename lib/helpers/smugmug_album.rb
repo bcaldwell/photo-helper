@@ -1,0 +1,215 @@
+require "helpers/smugmug_api"
+require "helpers/image_helper"
+require "helpers/file_helper"
+
+class SmugmugAlbumHelper
+  attr_accessor :smugmug_api
+
+  # to figure out what to delete, read all xmp files, loop through uploaded files and check xmp file
+
+  PATH_REGEX = %r{^.+Pictures\/.+\/(\d{4})\/(\d{2})_.+\/[^_]+_([^\/]+)}
+  KEYWORD_WHITELIST = ["exported", "instagram"]
+
+  def initialize(search_path, album = nil)
+    @search_path = search_path
+    @smugmug = SmugmugAPI.new
+
+    @album_name = album || album_name
+
+    @album = @smugmug.get_or_create_album(@album_name, album_url: @location&.downcase)
+
+    @dl_album_name = File.join("dl", @album_name)
+    @dl_album = @smugmug.get_or_create_album(@dl_album_name, album_url: @location&.downcase)
+
+  end
+
+  def parse_path
+    if matches = "#{@search_path}/".to_s.match(PATH_REGEX)
+      @year = matches[1]
+      @month = Date::MONTHNAMES[matches[2].to_i].capitalize
+      @location = matches[3].split("_").map(&:capitalize).join(' ')
+    end
+  end
+
+  def album_name
+    parse_path
+    if @year && @month && @location
+      folder = "#{@month} #{@year}"
+      album_name_short = "#{@location} #{@month} #{@year}"
+      File.join(@year, @month, album_name_short)
+    else
+      puts 'Unable to determine album from path'
+    end
+  end
+
+  def image_list
+    # todo: exclude exported path
+    Dir["#{@search_path}/**/*.{#{IMAGE_EXTENSIONS.join(",")}}"].reject{ |p| FileHelper.ingore_file?(p) }
+  end
+
+  def exported_list
+    exported = Dir["#{@search_path}/**/{Exported,exported}/*.{#{IMAGE_EXTENSIONS.join(",")}}"]
+  end
+
+  def instagram_list
+    exported = Dir["#{@search_path}/**/{Instagram,instagram}/*.{#{IMAGE_EXTENSIONS.join(",")}}"]
+  end
+
+  def merge_exported(images = image_list, concat = false)
+    exported = Dir["#{@search_path}/**/{Exported,exported}/*.{#{IMAGE_EXTENSIONS.join(",")}}"]
+    unless concat
+      exported_basenames = exported.map{ |p| File.basename(p, ".*") }
+      images = images.reject { |p| exported_basenames.include? File.basename(p, ".*") }
+    end
+    images.concat(exported)
+  end
+
+  def uploaded_to_hash(album)
+    uploaded = @smugmug.images(album[:id])
+    uploaded_hash = {}
+    uploaded.each do |u|
+      filename = File.basename(u[:filename], ".*")
+      push_hash_array(uploaded_hash, filename, u)
+    end
+    uploaded_hash
+  end
+
+  def image_list_to_hash(images, tags = nil)
+    image_list_hash = {}
+    images.each do |i|
+      filename = File.basename(i, ".*")
+      push_hash_array(image_list_hash, filename, {
+        file: i,
+        keywords: tags,
+        md5: Digest::MD5.file(i).hexdigest
+      })
+    end
+    image_list_hash
+  end
+
+  def sync(album, image_list_hash, reject_trash = true)
+    uploaded_hash = uploaded_to_hash(album)
+
+    to_upload = {}
+    to_update = {}
+
+    image_list_hash.each do |filename, images|
+      images.each do |image|
+        next unless ImageHelper.is_jpeg?(image[:file])
+        next if reject_trash && ImageHelper.color_class(image[:file]) == "Trash"
+
+        upload_image =
+          if uploaded_hash.key?(filename)
+            !uploaded_hash[filename].any? do |uploaded|
+              if image[:keywords].nil?
+                #  || uploaded[:keywords].nil?
+                # & returns if in both arrays
+                KEYWORD_WHITELIST & uploaded[:keywords] == []
+              else
+                image[:keywords] - uploaded[:keywords] == []
+              end
+            end
+          else
+            true
+          end
+
+        if upload_image
+          push_hash_array(to_upload, image[:keywords], image[:file])
+        end
+      end
+    end
+
+    to_upload.each do |keywords, images|
+      puts keywords
+      upload(album, images, true, keywords)
+    end
+  end
+
+  def upload(album, pictures, reject_trash = true, keywords = nil)
+    # remove uploaded pictures
+    # uploaded = @smugmug.images(album[:id])
+    # # loop through and create hash for keywords to add {exported: [], instagram: []}
+    # pictures = pictures.reject do |p|
+    #   next true if reject_trash && ImageHelper.color_class(p) == "Trash"
+
+    #   uploaded.any? do |image|
+    #     if keywords.nil?
+    #       (image[:filename] == File.basename(p))
+    #     else
+    #       ((image[:filename] == File.basename(p)) && keywords - image[:keywords] == [])
+    #     end
+    #   end
+    # end
+
+    # puts pictures
+
+    puts "Uploading #{pictures.count} jpegs"
+
+    headers = {}
+    headers["X-Smug-Keywords"] = keywords.join(",") unless keywords.nil?
+
+    @smugmug.upload_images(pictures, album[:id], headers, workers: 8, filename_as_title: true)
+  end
+
+  def delete(album, reject_trash = true)
+    # remove uploaded pictures
+    uploaded = @smugmug.images(album[:id])
+
+    extensions = (JPEG_EXTENSIONS).concat(RAW_EXTENSIONS)
+    xmp_files = Dir["#{@search_path}/**/*.XMP"]
+    files = Dir["#{@search_path}/**/*.#{extensions.join(",")}"].map{ |f| File.basename(f, ".*")}
+    uploaded.each do |image|
+      # dont search, guess file name and check
+      basename = File.basename(image[:filename], ".*")
+      full_path = File.join(@search_path, image[:filename])
+      next if files.include? basename
+# if File.exists? full_path
+      next unless ImageHelper.color_class(full_path) == "Trash"
+      puts "Delete #{image[:filename]}"
+    end
+  end
+
+  def upload_dl
+    puts "Uploading all images to album #{@album_name} --> #{@dl_album[:web_uri]}\n"
+
+    uploaded_hash = uploaded_to_hash(@dl_album)
+
+    @image_list = image_list_to_hash(image_list)
+    @image_list = merge_hash_array(@image_list, image_list_to_hash(exported_list, ["exported"]))
+    @image_list = merge_hash_array(@image_list, image_list_to_hash(instagram_list, ["instagram"]))
+
+
+    # upload(@dl_album, exported_list, false, ["exported"])
+    # upload(@dl_album, instagram_list, false, ["instagram", "posted"])
+    # delete(@album_name)
+    sync(@dl_album, @image_list, true)
+  end
+
+  def upload_select
+    pictures = image_list
+    pictures = pictures.select{ |p| ImageHelper.is_select?(p)}
+    pictures = merge_exported(pictures)
+
+    puts "Uploading selects to album #{@album_name} --> #{@album[:web_uri]}\n"
+
+    @image_list = image_list_to_hash(pictures)
+
+    sync(@album, @image_list, true)
+    # delete(@album_name)
+  end
+
+  private
+  def push_hash_array(hash, key, item)
+    hash[key] = [] unless hash.key?(key)
+    hash[key].push(item)
+    hash
+  end
+
+  def merge_hash_array(hash1, hash2)
+    hash2.each do |key, value|
+      hash1[key] = [] unless hash1.key?(key)
+      hash1[key].concat(value)
+    end
+    hash1
+  end
+end

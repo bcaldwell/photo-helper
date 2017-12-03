@@ -1,4 +1,4 @@
-require 'helpers/smugmug'
+require 'helpers/smugmug_album'
 require 'date'
 require 'helpers/image_helper'
 
@@ -14,15 +14,15 @@ module PhotoHelper
     def sync(folder = nil, album_name = nil)
       search_path = File.expand_path(folder)
 
-      @smugmug = SmugmugHelper.new(search_path)
+      @smugmug = SmugmugAlbumHelper.new(search_path)
 
       @smugmug.upload_select
       puts("\n")
-      if album_name
-        @smugmug.upload(album_name, @smugmug.image_list)
-      else
-        @smugmug.upload_dl
-      end
+      # if album_name
+      #   @smugmug.upload(album_name, @smugmug.image_list)
+      # else
+      @smugmug.upload_dl
+      # end
     end
 
     desc 'oauth', "fetch oauth credentials"

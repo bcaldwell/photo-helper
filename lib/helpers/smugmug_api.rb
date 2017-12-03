@@ -83,7 +83,6 @@ class SmugmugAPI
   def get_or_create_album(path, album_url: nil)
     folder_path = File.dirname(path).split('/').map(&:capitalize).join('/')
     album_name = File.basename(path).split(' ').map(&:capitalize).join(' ')
-    puts album_name
     album = nil
 
     folder = get_or_create_folder(folder_path)
@@ -186,7 +185,7 @@ class SmugmugAPI
     JSON.parse(response.body)['Response']
   end
 
-  def upload(image_path, album_id, headers = {})
+  def upload(image_path, album_id, headers = {}, filename_as_title: false)
     image = File.open(image_path)
 
     headers.merge!('Content-Type' => MimeMagic.by_path(image_path).type,
@@ -198,14 +197,16 @@ class SmugmugAPI
                    'X-Smug-FileName' => File.basename(image_path),
                    'Content-MD5' => Digest::MD5.file(image_path).hexdigest)
 
+    headers.merge!('X-Smug-Title' => File.basename(image_path, ".*")) if filename_as_title
+
     resp = @uploader.post('/', image, headers)
     resp.body
   end
 
-  def upload_images(images, album_id, headers = {}, workers: 4)
+  def upload_images(images, album_id, headers = {}, workers: 4, filename_as_title: false)
     counter = 0
     Parallel.each(images, in_processes: workers) do |image|
-      upload(image, album_id, headers)
+      upload(image, album_id, headers, filename_as_title: filename_as_title)
       counter += 1
       puts "#{counter}/#{images.count / workers} Done #{image}"
     end
