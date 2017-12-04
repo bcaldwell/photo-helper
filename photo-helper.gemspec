@@ -5,7 +5,7 @@ require 'photo-helper/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "photo-helper"
-  spec.version       = KubeDeploy::VERSION
+  spec.version       = PhotoHelper::VERSION
   spec.authors       = ["Benjamin Caldwell"]
   spec.email         = ["caldwellbenjamin8@gmail.com"]
 
@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry"
   spec.add_development_dependency "byebug"
   spec.add_development_dependency "rubocop"
-  
+
   spec.add_dependency "thor"
   spec.add_dependency "mini_magick"
   spec.add_dependency "ejson"

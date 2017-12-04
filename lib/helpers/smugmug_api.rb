@@ -170,7 +170,7 @@ class SmugmugAPI
   end
 
   def get(url, params = nil, headers = {})
-    url.tr!(' ', '-')
+    url = url.tr(' ', '-')
     uri = URI.parse(url)
     uri.query = URI.encode_www_form(params) if params
     http(:get, uri.to_s, headers)
@@ -244,9 +244,8 @@ class SmugmugAPI
   private
 
   def http_raw(method, url, headers = {}, _body = nil)
-    url.tr!(' ', '-')
+    url = url.tr(' ', '-')
     headers['Accept'] = 'application/json'
-
     @http.request(method, url, headers)
   end
 
