@@ -101,7 +101,6 @@ class SmugmugAlbumHelper
         next if reject_trash && ImageHelper.color_class(image[:file]) == "Trash"
 
         upload_image = true
-        update_image = false
 
         if uploaded_hash.key?(filename)
           !uploaded_hash[filename].each do |uploaded|
@@ -109,17 +108,15 @@ class SmugmugAlbumHelper
 
             # & returns if in both arrays
             upload_image = false
-            update_image = true if uploaded[:md5] != image[:md5]
+            if uploaded[:md5] != image[:md5]
+              push_hash_array(to_update, image[:keywords], image.merge!(uri: uploaded[:uri]))
+            end
             break
           end
         end
 
         if upload_image
           push_hash_array(to_upload, image[:keywords], image[:file])
-        end
-
-        if update_image
-          push_hash_array(to_update, image[:keywords], image[:file])
         end
       end
     end
@@ -140,7 +137,7 @@ class SmugmugAlbumHelper
 
     to_upload.each do |keywords, images|
       puts keywords
-      upload(album, images, true, keywords)
+      upload(album, images, keywords)
     end
 
     if to_delete.any?
@@ -150,32 +147,29 @@ class SmugmugAlbumHelper
         @smugmug.http(:delete, uploaded[:uri])
       end
     end
+
+    to_update.each do |keywords, images|
+      puts keywords
+      update(album, images, keywords)
+    end
   end
 
-  def upload(album, pictures, _reject_trash = true, keywords = nil)
-    # remove uploaded pictures
-    # uploaded = @smugmug.images(album[:id])
-    # # loop through and create hash for keywords to add {exported: [], instagram: []}
-    # pictures = pictures.reject do |p|
-    #   next true if reject_trash && ImageHelper.color_class(p) == "Trash"
-
-    #   uploaded.any? do |image|
-    #     if keywords.nil?
-    #       (image[:filename] == File.basename(p))
-    #     else
-    #       ((image[:filename] == File.basename(p)) && keywords - image[:keywords] == [])
-    #     end
-    #   end
-    # end
-
-    # puts pictures
-
+  def upload(album, pictures, keywords = nil)
     puts "Uploading #{pictures.count} jpegs"
 
     headers = {}
     headers["X-Smug-Keywords"] = keywords.join(",") unless keywords.nil?
 
     @smugmug.upload_images(pictures, album[:id], headers, workers: 8, filename_as_title: true)
+  end
+
+  def update(album, pictures, keywords = nil)
+    puts "Updating #{pictures.count} jpegs"
+
+    headers = {}
+    headers["X-Smug-Keywords"] = keywords.join(",") unless keywords.nil?
+
+    @smugmug.update_images(pictures, album[:id], headers, workers: 8, filename_as_title: true)
   end
 
   def upload_dl

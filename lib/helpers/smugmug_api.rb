@@ -188,13 +188,13 @@ class SmugmugAPI
     image = File.open(image_path)
 
     headers.merge!('Content-Type' => MimeMagic.by_path(image_path).type,
-                   'X-Smug-AlbumUri' => "/api/v2/album/#{album_id}",
-                   'X-Smug-ResponseType' => 'JSON',
-                   'X-Smug-Version' => 'v2',
-                   'charset' => 'UTF-8',
-                   'Accept' => 'JSON',
-                   'X-Smug-FileName' => File.basename(image_path),
-                   'Content-MD5' => Digest::MD5.file(image_path).hexdigest)
+    'X-Smug-AlbumUri' => "/api/v2/album/#{album_id}",
+    'X-Smug-ResponseType' => 'JSON',
+    'X-Smug-Version' => 'v2',
+    'charset' => 'UTF-8',
+    'Accept' => 'JSON',
+    'X-Smug-FileName' => File.basename(image_path),
+    'Content-MD5' => Digest::MD5.file(image_path).hexdigest)
 
     headers['X-Smug-Title'] = File.basename(image_path, ".*") if filename_as_title
 
@@ -204,10 +204,23 @@ class SmugmugAPI
 
   def upload_images(images, album_id, headers = {}, workers: 4, filename_as_title: false)
     counter = 0
-    Parallel.each(images, in_processes: workers) do |image|
+    Parallel.each(images, in_processes: workers, progress: "Uploading images") do |image|
       upload(image, album_id, headers, filename_as_title: filename_as_title)
-      counter += 1
-      puts "#{counter}/#{images.count / workers} Done #{image}"
+      # puts "#{counter}/#{images.count / workers}
+      puts "Done #{image}"
+    end
+  end
+
+  def update_images(images, album_id, headers = {}, workers: 4, filename_as_title: false)
+    counter = 0
+
+    Parallel.each(images, in_processes: workers, progress: "Updating images") do |image|
+      # replace not working, delete then upload
+      http(:delete, image[:uri])
+      upload(image[:file], album_id, headers, filename_as_title: filename_as_title)
+      # counter += 1
+      # puts "#{counter}/#{images.count / workers}
+      puts "Done #{image[:file]}"
     end
   end
 
