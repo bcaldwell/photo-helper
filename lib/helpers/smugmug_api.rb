@@ -203,30 +203,24 @@ class SmugmugAPI
   end
 
   def upload_images(images, album_id, headers = {}, workers: 4, filename_as_title: false)
-    counter = 0
     Parallel.each(images, in_processes: workers, progress: "Uploading images") do |image|
       upload(image, album_id, headers, filename_as_title: filename_as_title)
-      # puts "#{counter}/#{images.count / workers}
       puts "Done #{image}"
     end
   end
 
   def update_images(images, album_id, headers = {}, workers: 4, filename_as_title: false)
-    counter = 0
-
     Parallel.each(images, in_processes: workers, progress: "Updating images") do |image|
       # replace not working, delete then upload
       http(:delete, image[:uri])
       upload(image[:file], album_id, headers, filename_as_title: filename_as_title)
-      # counter += 1
-      # puts "#{counter}/#{images.count / workers}
       puts "Done #{image[:file]}"
     end
   end
 
   def collect_images(images, album_id)
     images = images.join(",") if images.is_a? Array
-    post("/api/v2/album/#{album_id}!collectimages", {"CollectUris" => images })
+    post("/api/v2/album/#{album_id}!collectimages", "CollectUris" => images)
   end
 
   def request_access_token

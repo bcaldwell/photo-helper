@@ -10,7 +10,7 @@ class SmugmugAlbumHelper
   # to figure out what to delete, read all xmp files, loop through uploaded files and check xmp file
 
   PATH_REGEX = %r{^.+Pictures\/.+\/(\d{4})\/(\d{2})_.+\/[^_]+_([^\/]+)}
-  KEYWORD_WHITELITS = %w("instagram exported")
+  KEYWORD_WHITELITS = %w(instagram exported)
 
   def initialize(search_path, album = nil)
     @search_path = Pathname.new(search_path)
@@ -79,10 +79,11 @@ class SmugmugAlbumHelper
     image_list_hash = {}
     images.each do |i|
       filename = File.basename(i, ".*")
-      tags = image_dir_keywords(i)
-      @keyword_list.merge(tags) if tags
+      keywords = image_dir_keywords(i)
+      @keyword_list.merge(keywords) if keywords
+
       push_hash_array(image_list_hash, filename, file: i,
-        keywords: tags,
+        keywords: keywords,
         md5: Digest::MD5.file(i).hexdigest)
     end
     image_list_hash
@@ -127,7 +128,11 @@ class SmugmugAlbumHelper
           image_hash = image_list_hash[filename].find do |image|
             uploaded_match_requested?(image, uploaded)
           end
-          to_delete.push(uploaded) if image_hash.nil?
+
+          if image_hash.nil?
+            to_delete.push(uploaded)
+            next
+          end
           to_delete.push(uploaded) if reject_trash && ImageHelper.color_class(image_hash[:file]) == "Trash"
         else
           to_delete.push(uploaded)
@@ -213,7 +218,7 @@ class SmugmugAlbumHelper
   end
 
   def image_dir_keywords(image)
-    rel = Pathname.new(image).relative_path_from(@search_path).to_s.split("/")
+    rel = Pathname.new(image).relative_path_from(@search_path).to_s.downcase.split("/")
     # ignore first and last parts
     rel &= KEYWORD_WHITELITS
     return nil if rel.empty?
