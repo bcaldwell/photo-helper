@@ -229,8 +229,8 @@ class SmugmugAlbumHelper
     if image[:keywords].nil?
       # empty from keyword list
       return true if uploaded[:keywords].nil? || @keyword_list & uploaded[:keywords] == Set.new
-    else
-      return true if image[:keywords] - uploaded[:keywords] == []
+    elsif image[:keywords] - uploaded[:keywords] == []
+      return true
     end
     false
   end
