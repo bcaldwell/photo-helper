@@ -89,7 +89,7 @@ class SmugmugAlbumHelper
     image_list_hash
   end
 
-  def sync(album, image_list_hash, reject_trash = true)
+  def sync(album, image_list_hash, reject_trash = true, delete: true)
     uploaded_hash = uploaded_to_hash(album)
 
     to_upload = {}
@@ -145,7 +145,7 @@ class SmugmugAlbumHelper
       upload(album, images, keywords)
     end
 
-    if to_delete.any?
+    if delete && to_delete.any?
       puts "Deleting #{to_delete.count} images"
       to_delete.each do |uploaded|
         puts uploaded[:filename]
@@ -177,15 +177,50 @@ class SmugmugAlbumHelper
     @smugmug.update_images(pictures, album[:id], headers, workers: 8, filename_as_title: true)
   end
 
-  def upload_dl
+  def upload_dl(album_name)
+    album = if album
+          @smugmug.get_or_create_album(album_name)
+      else 
+        @dl_album
+      end
     @keyword_list = Set.new
-    puts "Uploading all images to album #{@album_name} --> #{@dl_album[:web_uri]}\n"
+    puts "Uploading all images to album #{album_name || @album_name} --> #{album[:web_uri]}\n"
 
     @image_list = image_list_to_hash(image_list)
     @image_list = merge_hash_array(@image_list, image_list_to_hash(exported_list))
     @image_list = merge_hash_array(@image_list, image_list_to_hash(instagram_list))
-    sync(@dl_album, @image_list, true)
+    sync(album, @image_list, true)
   end
+
+  def collect_select
+    @keyword_list = Set.new
+    
+    pictures = image_list
+    pictures = pictures.select { |p| ImageHelper.is_select?(p) }
+    pictures = merge_exported(pictures)
+
+    puts "Collecting selects to album #{@album_name} --> #{@album[:web_uri]}\n"
+
+    @image_list = image_list_to_hash(pictures)
+    @uploaded_hash ||= uploaded_to_hash(@album)
+    @dl_uploaded_hash ||= uploaded_to_hash(@dl_album)
+
+    to_collect = []
+    # no_match = {}
+
+    @image_list.each do |filename, images|
+      images.each do |image|
+        if @uploaded_hash.key?(filename)
+          @uploaded_hash[filename].each do |uploaded|
+            next unless uploaded_match_requested?(image, uploaded)
+            to_collect.push(uploaded[:uri])
+          end
+        end
+      end
+    end
+
+    @smugmug.collect_images(to_collect, @album[:id])
+  end    
 
   def upload_select
     @keyword_list = Set.new
