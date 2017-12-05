@@ -177,7 +177,7 @@ class SmugmugAPI
   end
 
   def post(url, body = {}, headers = {})
-    url.tr!(' ', '-')
+    url = url.tr(' ', '-')
     headers['Accept'] = 'application/json'
     response = @http.post(url, body, headers)
     raise "Request failed\n#{response.body}" unless response.is_a? Net::HTTPSuccess
@@ -222,6 +222,11 @@ class SmugmugAPI
       # puts "#{counter}/#{images.count / workers}
       puts "Done #{image[:file]}"
     end
+  end
+
+  def collect_images(images, album_id)
+    images = images.join(",") if images.is_a? Array
+    post("/api/v2/album/#{album_id}!collectimages", {"CollectUris" => images })
   end
 
   def request_access_token

@@ -179,7 +179,6 @@ class SmugmugAlbumHelper
     @image_list = image_list_to_hash(image_list)
     @image_list = merge_hash_array(@image_list, image_list_to_hash(exported_list))
     @image_list = merge_hash_array(@image_list, image_list_to_hash(instagram_list))
-
     sync(@dl_album, @image_list, true)
   end
 
