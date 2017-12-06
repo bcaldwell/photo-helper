@@ -7,12 +7,36 @@ require 'set'
 class SmugmugAlbumHelper
   attr_accessor :smugmug_api
 
-  # to figure out what to delete, read all xmp files, loop through uploaded files and check xmp file
-
   PATH_REGEX = %r{^.+Pictures\/.+\/(\d{4})\/(\d{2})_.+\/[^_]+_([^\/]+)}
   KEYWORD_WHITELITS = %w(instagram exported)
 
+  def self.supported_folder?(search_path)
+    PATH_REGEX.match?(search_path)
+  end
+
+  def self.recursive_sync(search_path)
+    folders = Dir[File.join(search_path, "*/")]
+    folders.each do |folder|
+      if SmugmugAlbumHelper.supported_folder?(folder)
+        puts "Syncing #{folder}\n"
+        sync(folder)
+        puts "\n"
+      else
+        recursive_sync(folder)
+      end
+    end
+  end
+
+  def self.sync(search_path)
+    smugmug = SmugmugAlbumHelper.new(search_path)
+    smugmug.upload_dl
+    puts "\n"
+    smugmug.collect_select
+  end
+
   def initialize(search_path, album = nil)
+    @search_extensions = IMAGE_EXTENSIONS.concat(["XMP"])
+
     @search_path = Pathname.new(search_path)
     @smugmug = SmugmugAPI.new
 
@@ -45,19 +69,19 @@ class SmugmugAlbumHelper
   end
 
   def image_list
-    Dir["#{@search_path}/**/*.{#{IMAGE_EXTENSIONS.join(',')}}"].reject { |p| FileHelper.ingore_file?(p) }
+    Dir[File.join(@search_path, "/**/*.{#{@search_extensions.join(',')}}")].reject { |p| FileHelper.ingore_file?(p)}
   end
 
   def exported_list
-    Dir["#{@search_path}/**/{Exported,exported}/*.{#{IMAGE_EXTENSIONS.join(',')}}"]
+    Dir[File.join(@search_path, "/**/{Exported,exported}/*.*")]
   end
 
   def instagram_list
-    Dir["#{@search_path}/**/{Instagram,instagram}/*.{#{IMAGE_EXTENSIONS.join(',')}}"]
+    Dir[File.join(@search_path, "/**/{Instagram,instagram}/*.*")]
   end
 
   def merge_exported(images = image_list, concat = false)
-    exported = Dir["#{@search_path}/**/{Exported,exported}/*.{#{IMAGE_EXTENSIONS.join(',')}}"]
+    exported = Dir["#{@search_path}/**/{Exported,exported}/*.*"]
     unless concat
       exported_basenames = exported.map { |p| File.basename(p, ".*") }
       images = images.reject { |p| exported_basenames.include? File.basename(p, ".*") }
@@ -145,17 +169,18 @@ class SmugmugAlbumHelper
       upload(album, images, keywords)
     end
 
+    to_update.each do |keywords, images|
+      puts keywords
+      update(album, images, keywords)
+    end
+    # puts "delete #{to_delete.count}???"
+
     if delete && to_delete.any?
       puts "Deleting #{to_delete.count} images"
       to_delete.each do |uploaded|
         puts uploaded[:filename]
         @smugmug.http(:delete, uploaded[:uri])
       end
-    end
-
-    to_update.each do |keywords, images|
-      puts keywords
-      update(album, images, keywords)
     end
   end
 
@@ -177,12 +202,13 @@ class SmugmugAlbumHelper
     @smugmug.update_images(pictures, album[:id], headers, workers: 8, filename_as_title: true)
   end
 
-  def upload_dl(album_name)
+  def upload_dl(album_name = nil)
     album = if album
-          @smugmug.get_or_create_album(album_name)
-      else 
-        @dl_album
-      end
+      @smugmug.get_or_create_album(album_name)
+    else
+      @dl_album
+    end
+
     @keyword_list = Set.new
     puts "Uploading all images to album #{album_name || @album_name} --> #{album[:web_uri]}\n"
 
@@ -194,7 +220,7 @@ class SmugmugAlbumHelper
 
   def collect_select
     @keyword_list = Set.new
-    
+
     pictures = image_list
     pictures = pictures.select { |p| ImageHelper.is_select?(p) }
     pictures = merge_exported(pictures)
@@ -210,17 +236,17 @@ class SmugmugAlbumHelper
 
     @image_list.each do |filename, images|
       images.each do |image|
-        if @uploaded_hash.key?(filename)
-          @uploaded_hash[filename].each do |uploaded|
-            next unless uploaded_match_requested?(image, uploaded)
-            to_collect.push(uploaded[:uri])
-          end
+        next unless @dl_uploaded_hash.key?(filename)
+        @dl_uploaded_hash[filename].each do |uploaded|
+          next unless uploaded_match_requested?(image, uploaded)
+          to_collect.push(uploaded[:uri]) unless to_collect.include? uploaded[:uri]
+          break
         end
       end
     end
 
     @smugmug.collect_images(to_collect, @album[:id])
-  end    
+  end
 
   def upload_select
     @keyword_list = Set.new

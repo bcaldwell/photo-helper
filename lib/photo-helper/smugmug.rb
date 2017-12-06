@@ -14,17 +14,21 @@ module PhotoHelper
     method_option :recursive, aliases: '-r', type: :boolean, default: false
     method_option :dry_run, aliases: '-d', type: :boolean, default: false
     method_option :no_delete, type: :boolean, default: false
-    def sync(folder = nil, _album_name = nil)
+    def sync(folder = nil, album_name = nil)
       search_path = File.expand_path(folder)
 
-      @smugmug = SmugmugAlbumHelper.new(search_path)
+      if options[:recursive]
+        SmugmugAlbumHelper.recursive_sync(search_path)
+
+        return
+      end
 
       puts("\n")
       if album_name
+        @smugmug = SmugmugAlbumHelper.new(search_path)
         @smugmug.upload_dl(album_name)
       else
-        @smugmug.upload_dl
-        @smugmug.collect_select
+        SmugmugAlbumHelper.sync(search_path)
       end
     end
 

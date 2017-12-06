@@ -219,6 +219,7 @@ class SmugmugAPI
   end
 
   def collect_images(images, album_id)
+    return if images.empty?
     images = images.join(",") if images.is_a? Array
     post("/api/v2/album/#{album_id}!collectimages", "CollectUris" => images)
   end

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    photo-helper (0.3.1)
+    photo-helper (0.4)
       ejson
       mimemagic
       mini_magick
