@@ -61,6 +61,7 @@ class SmugmugAlbumHelper
   def album_name
     parse_path
     if @year && @month && @location
+      @location = @location.gsub(/[-_]/, ' ')
       album_name_short = "#{@location} #{@month} #{@year}"
       File.join(@year, @month, album_name_short)
     else
@@ -69,7 +70,7 @@ class SmugmugAlbumHelper
   end
 
   def image_list
-    Dir[File.join(@search_path, "/**/*.{#{@search_extensions.join(',')}}")].reject { |p| FileHelper.ingore_file?(p)}
+    Dir[File.join(@search_path, "/**/*.{#{@search_extensions.join(',')}}")].reject { |p| FileHelper.ingore_file?(p) }
   end
 
   def exported_list
@@ -174,7 +175,6 @@ class SmugmugAlbumHelper
       update(album, images, keywords)
     end
     # puts "delete #{to_delete.count}???"
-
     if delete && to_delete.any?
       puts "Deleting #{to_delete.count} images"
       to_delete.each do |uploaded|
