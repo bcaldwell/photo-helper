@@ -190,7 +190,7 @@ class SmugmugAlbumHelper
     headers = {}
     headers["X-Smug-Keywords"] = keywords.join(",") unless keywords.nil?
 
-    @smugmug.upload_images(pictures, album[:id], headers, workers: 8, filename_as_title: true)
+    @smugmug.upload_images(pictures, album[:id], headers, workers: 4, filename_as_title: true)
   end
 
   def update(album, pictures, keywords = nil)
@@ -199,12 +199,13 @@ class SmugmugAlbumHelper
     headers = {}
     headers["X-Smug-Keywords"] = keywords.join(",") unless keywords.nil?
 
-    @smugmug.update_images(pictures, album[:id], headers, workers: 8, filename_as_title: true)
+    @smugmug.update_images(pictures, album[:id], headers, workers: 4, filename_as_title: true)
   end
 
-  def upload_dl(album_name = nil)
-    album = if album
-      @smugmug.get_or_create_album(album_name)
+  def upload_dl(album_name_override = nil)
+    album = if album_name_override
+      # @smugmug.get_or_create_album(album_name)
+      @smugmug.get_or_create_album(album_name_override)
     else
       @dl_album
     end

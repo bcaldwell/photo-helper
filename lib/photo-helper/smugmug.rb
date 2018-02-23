@@ -19,13 +19,11 @@ module PhotoHelper
 
       if options[:recursive]
         SmugmugAlbumHelper.recursive_sync(search_path)
-
         return
       end
 
-      puts("\n")
       if album_name
-        @smugmug = SmugmugAlbumHelper.new(search_path)
+        @smugmug = SmugmugAlbumHelper.new(search_path, album_name)
         @smugmug.upload_dl(album_name)
       else
         SmugmugAlbumHelper.sync(search_path)
