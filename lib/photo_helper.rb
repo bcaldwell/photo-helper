@@ -14,7 +14,7 @@ require 'photo-helper/screensaver'
 
 # TODO: move to config file
 RAW_EXTENSION = "dng"
-RAW_EXTENSIONS = [RAW_EXTENSION, "DNG", "ORF"]
+RAW_EXTENSIONS = [RAW_EXTENSION, "DNG", "ORF", "RAF"]
 JPEG_EXTENSION = "JPG"
 JPEG_EXTENSIONS = %w(JPG jpg jpeg)
 IMAGE_EXTENSIONS = JPEG_EXTENSIONS.concat([])
