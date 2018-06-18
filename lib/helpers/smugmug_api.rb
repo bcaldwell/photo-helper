@@ -79,6 +79,7 @@ class SmugmugAPI
     folder_list
   end
 
+  # path is the full path with spaces
   def get_or_create_album(path, album_url: nil)
     folder_path = File.dirname(path).split('/').map(&:capitalize).join('/')
     album_name = File.basename(path).split(' ').map(&:capitalize).join(' ')
@@ -222,6 +223,12 @@ class SmugmugAPI
     return if images.empty?
     images = images.join(",") if images.is_a? Array
     post("/api/v2/album/#{album_id}!collectimages", "CollectUris" => images)
+  end
+
+  def move_images(images, album_id)
+      return if images.empty?
+      images = images.join(",") if images.is_a? Array
+      post("/api/v2/album/#{album_id}!moveimages", "MoveUris" => images)
   end
 
   def request_access_token

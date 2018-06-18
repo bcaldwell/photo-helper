@@ -3,6 +3,8 @@ class ImageHelper
   IMAGE_CLASS_REGEX = /xmp:Label="(.+)"/
   RATING_REGEX = /xmp:Rating="(.+)"/
 
+# identify -format '%[EXIF:*]' .jepg
+
   def self.xmp(image)
     xmp = File.join(File.dirname(image), File.basename(image, ".*") + ".XMP")
     return unless File.exist?(xmp)

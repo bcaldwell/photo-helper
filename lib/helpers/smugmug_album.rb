@@ -177,10 +177,13 @@ class SmugmugAlbumHelper
     # puts "delete #{to_delete.count}???"
     if delete && to_delete.any?
       puts "Deleting #{to_delete.count} images"
-      to_delete.each do |uploaded|
-        puts uploaded[:filename]
-        @smugmug.http(:delete, uploaded[:uri])
-      end
+      trash_album_name = File.join("trash/#{album_name}")
+      trash_album = @smugmug.get_or_create_album(trash_album_name)
+      @smugmug.move_images(to_delete.map{ |u| u[:uri] }, trash_album[:id])
+      # to_delete.each do |uploaded|
+      #   puts uploaded[:filename]
+      #   @smugmug.http(:delete, uploaded[:uri])
+      # end
     end
   end
 
