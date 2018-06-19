@@ -159,6 +159,13 @@ class SmugmugAPI
     images
   end
 
+  def delete_images(images)
+    images = [images] unless images.is_a? Array
+    images.each do |image|
+      http(:delete, image[:uri])
+    end
+  end
+
   def image_list(album_id)
     @images = images(album_id)
     @images.map { |i| i[:filename] }

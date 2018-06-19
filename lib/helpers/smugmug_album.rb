@@ -236,7 +236,6 @@ class SmugmugAlbumHelper
     @dl_uploaded_hash ||= uploaded_to_hash(@dl_album)
 
     to_collect = []
-    # no_match = {}
 
     @image_list.each do |filename, images|
       images.each do |image|
@@ -249,6 +248,8 @@ class SmugmugAlbumHelper
       end
     end
 
+    # delete all images from album since we just collec them anyways which is cheap
+    @smugmug.delete_images(@smugmug.images(@album[:id]))
     @smugmug.collect_images(to_collect, @album[:id])
   end
 
