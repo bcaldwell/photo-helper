@@ -63,7 +63,7 @@ class SmugmugAPI
   end
 
   def node_children(id)
-    get("/api/v2/node/#{id}!children")
+    get("/api/v2/node/#{id}!children", count: 100)
   end
 
   def user

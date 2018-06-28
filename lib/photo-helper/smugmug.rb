@@ -85,8 +85,6 @@ module PhotoHelper
         end
       end
 
-      # pp albums_tree
-
       puts output.join("\n\n")
     end
   end
