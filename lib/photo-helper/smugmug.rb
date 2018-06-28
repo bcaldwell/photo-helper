@@ -37,8 +37,6 @@ module PhotoHelper
 
     desc 'albums', 'list albums with their weburl'
     def albums
-      require 'pp'
-
       @smugmug = SmugmugAPI.new
       albums = @smugmug.albums_long
 
@@ -67,8 +65,6 @@ module PhotoHelper
         next key.first.to_i if key.first =~ /^\d+$/
         next Float::INFINITY
       end
-
-      pp stack
 
       until stack.empty?
         key = stack.pop
