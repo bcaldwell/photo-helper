@@ -12,7 +12,7 @@ module PhotoHelper
 
     desc 'jpeg', 'delete jpegs that have an raw with same name'
     method_option :folder, aliases: '-f', type: :string, default: '.'
-    method_option :hard, aliases: '-h', type: :boolean, default: false
+    method_option :'soft-delete', aliases: '-s', type: :boolean, default: true
     method_option :recursive, aliases: '-r', type: :boolean, default: false
     def jpeg(folder = nil)
       folder ||= options[:folder]
@@ -38,10 +38,10 @@ module PhotoHelper
         next if FileHelper.ingore_file?(file)
         puts file
 
-        if options[:hard]
-          File.delete(file)
-        else
+        if options[:softdelete]
           File.trash(file)
+        else
+          File.delete(file)
         end
       end
 

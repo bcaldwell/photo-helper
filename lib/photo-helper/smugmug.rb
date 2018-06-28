@@ -37,21 +37,59 @@ module PhotoHelper
 
     desc 'albums', 'list albums with their weburl'
     def albums
+      require 'pp'
+
       @smugmug = SmugmugAPI.new
       albums = @smugmug.albums_long
 
-      current_month = albums.first[:path].split('/')[1]
-      output = ['# Photos', "## #{current_month}"]
+      albums_tree = {}
+      output = ["# Photos"]
 
       albums.each do |a|
-        month = a[:path].split('/')[1]
-        next unless month
-        if month != current_month
-          current_month = month
-          output.push("## #{current_month}")
+        parts = a[:path].split('/')
+        next if parts[0] == "Trash"
+
+        album_name = parts.pop
+        parts.each_with_index do |part, i|
+          if i == 0
+            albums_tree[part] ||= {}
+          else
+            parts[0..(i - 1)].inject(albums_tree, :fetch)[part] ||= {}
+          end
         end
-        output.push("[#{a[:name]}](#{a[:web_uri].gsub('http://', 'https://')})")
+
+        parts[0..-1].inject(albums_tree, :fetch)[album_name] = "[#{a[:name]}](#{a[:web_uri]})"
       end
+
+      # depth first search
+      stack = albums_tree.keys.map { |a| [a] }
+      stack.sort_by! do |key|
+        next key.first.to_i if key.first =~ /^\d+$/
+        next Float::INFINITY
+      end
+
+      pp stack
+
+      until stack.empty?
+        key = stack.pop
+        item = key.inject(albums_tree, :fetch)
+        next if key.first == "dl"
+
+        if item.is_a?(Hash)
+          stack.concat(item.keys.map{|a| key.clone.push(a)})
+          output.push("#{'#'*key.count} #{key.last}")
+          next
+        end
+
+        begin
+          dl_item = ["dl"].concat(key).inject(albums_tree, :fetch)
+          output.push("  **Selects: ** #{item}\n  **All: ** #{dl_item}")
+        rescue
+          output.push(item)
+        end
+      end
+
+      # pp albums_tree
 
       puts output.join("\n\n")
     end
