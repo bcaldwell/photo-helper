@@ -8,7 +8,7 @@ class SmugmugAlbumHelper
   attr_accessor :smugmug_api
 
   PATH_REGEX = %r{^.+Pictures\/.+\/(\d{4})\/(\d{2})_.+\/[^_]+_([^\/]+)}
-  KEYWORD_WHITELITS = %w(instagram exported)
+  # KEYWORD_WHITELITS = %w(instagram exported)
 
   def self.supported_folder?(search_path)
     PATH_REGEX.match?(search_path)
@@ -37,7 +37,9 @@ class SmugmugAlbumHelper
   def initialize(search_path, album = nil)
     @search_extensions = IMAGE_EXTENSIONS.concat(["XMP"])
 
+
     @search_path = Pathname.new(search_path)
+
     @smugmug = SmugmugAPI.new
 
     @album_name = album || album_name
@@ -52,6 +54,7 @@ class SmugmugAlbumHelper
 
   def parse_path
     if matches = "#{@search_path}/".to_s.match(PATH_REGEX)
+      @album_root = Pathname.new(matches[0])
       @year = matches[1]
       @month = Date::MONTHNAMES[matches[2].to_i].capitalize
       @location = matches[3].split("_").map(&:capitalize).join(' ')
@@ -180,10 +183,6 @@ class SmugmugAlbumHelper
       trash_album_name = File.join("trash/#{album_name}")
       trash_album = @smugmug.get_or_create_album(trash_album_name)
       @smugmug.move_images(to_delete.map{ |u| u[:uri] }, trash_album[:id])
-      # to_delete.each do |uploaded|
-      #   puts uploaded[:filename]
-      #   @smugmug.http(:delete, uploaded[:uri])
-      # end
     end
   end
 
@@ -284,9 +283,9 @@ class SmugmugAlbumHelper
   end
 
   def image_dir_keywords(image)
-    rel = Pathname.new(image).relative_path_from(@search_path).to_s.downcase.split("/")
-    # ignore first and last parts
-    rel &= KEYWORD_WHITELITS
+    rel = Pathname.new(image).relative_path_from(@album_root).to_s.downcase.split("/")
+    # drop filename
+    rel.pop
     return nil if rel.empty?
     rel
   end
