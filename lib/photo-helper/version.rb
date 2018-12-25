@@ -1,4 +1,4 @@
 # frozen_string_literal: true
 module PhotoHelper
-  VERSION = '0.5.6'
+  VERSION = '0.5.7'
 end
