@@ -123,6 +123,7 @@ class SmugmugAlbumHelper
     to_upload = {}
     to_update = {}
     to_delete = []
+    to_update_keywords = []
 
     image_list_hash.each do |filename, images|
       images.each do |image|
@@ -133,7 +134,12 @@ class SmugmugAlbumHelper
 
         if uploaded_hash.key?(filename)
           !uploaded_hash[filename].each do |uploaded|
-            next unless uploaded_match_requested?(image, uploaded)
+            unless uploaded_match_requested?(image, uploaded)
+              if uploaded[:md5] == image[:md5]
+                to_update_keywords.push(uploaded)
+              end
+              next
+            end
 
             # & returns if in both arrays
             upload_image = false
@@ -143,7 +149,7 @@ class SmugmugAlbumHelper
             break
           end
         end
-
+    
         if upload_image
           push_hash_array(to_upload, image[:keywords], image[:file])
         end

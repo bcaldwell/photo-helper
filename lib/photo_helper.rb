@@ -24,6 +24,7 @@ SCREENSAVER_ROOT = File.expand_path("~/Pictures/screensaver")
 JPEG_ROOT = File.expand_path("~/Pictures/jpegs")
 IGNORE_FOLDERS = %w(instagram exported edited)
 SELECT_COLOR_TAGS = ["Winner", "Winner alt", "Superior", "Superior alt", "Typical", "Typical alt"]
+SELECT_RATING = 1 #greater than or equal to 
 
 module PhotoHelper
   class CLI < Thor

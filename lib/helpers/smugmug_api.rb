@@ -187,8 +187,10 @@ class SmugmugAPI
   def post(url, body = {}, headers = {})
     url = url.tr(' ', '-')
     headers['Accept'] = 'application/json'
+    headers['Content-Type'] = 'application/json'
+    headers['Connection'] = 'keep-alive'
     response = @http.post(url, body, headers)
-    raise "Request failed\n#{response.body}" unless response.is_a? Net::HTTPSuccess
+    raise "Request failed\n#{URI.unescape(response.body)}" unless response.is_a? Net::HTTPSuccess
     JSON.parse(response.body)['Response']
   end
 
@@ -213,7 +215,7 @@ class SmugmugAPI
   def upload_images(images, album_id, headers = {}, workers: 4, filename_as_title: false)
     Parallel.each(images, in_processes: workers, progress: "Uploading images") do |image|
       upload(image, album_id, headers, filename_as_title: filename_as_title)
-      puts "Done #{image}"
+      puts "Done #{image}\n"
     end
   end
 
@@ -222,7 +224,7 @@ class SmugmugAPI
       # replace not working, delete then upload
       http(:delete, image[:uri])
       upload(image[:file], album_id, headers, filename_as_title: filename_as_title)
-      puts "Done #{image[:file]}"
+      puts "Done #{image[:file]}\n"
     end
   end
 
@@ -236,6 +238,14 @@ class SmugmugAPI
       return if images.empty?
       images = images.join(",") if images.is_a? Array
       post("/api/v2/album/#{album_id}!moveimages", "MoveUris" => images)
+  end
+
+  def update_keywords(image, keywords, overwrite = false)
+    return if image.nil?
+    keywords = (image[:keywords] + keywords).uniq unless overwrite
+    
+    # inspect need outwise it isnt encoded right
+    pp post("#{image[:image_uri]}?_method=PATCH", KeywordArray: keywords.inspect)
   end
 
   def request_access_token
@@ -314,6 +324,7 @@ class SmugmugAPI
       id: image['ImageKey'],
       md5: image['ArchivedMD5'],
       uri: image['Uri'],
+      image_uri: image['Uris']['Image']['Uri'],
       web_uri: image['WebUri'],
       type: 'image'
     }

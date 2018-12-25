@@ -25,12 +25,14 @@ class ImageHelper
 
   def self.rating(image)
     contents = xmp(image)
+    return 0 unless contents
     matches = contents.match(RATING_REGEX)
-    matches[1] if matches
+    return matches[1].to_i if matches && matches[1].match(/^\d+$/)
+    0
   end
 
   def self.is_select?(image)
-    contains_color_class?(image, SELECT_COLOR_TAGS)
+    contains_color_class?(image, SELECT_COLOR_TAGS) || rating(image) >= SELECT_RATING
   end
 
   def self.is_5_star?(image)
