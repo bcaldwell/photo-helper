@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require 'helpers/secrets'
 require 'oauth'
 require 'uri'
@@ -8,17 +9,17 @@ require 'parallel'
 
 class SmugmugAPI
   attr_accessor :http, :uploader
-  OAUTH_ORIGIN = 'https://secure.smugmug.com'
-  REQUEST_TOKEN_URL = '/services/oauth/1.0a/getRequestToken'
-  ACCESS_TOKEN_URL = '/services/oauth/1.0a/getAccessToken'
-  AUTHORIZE_URL = '/services/oauth/1.0a/authorize'
-  API_ENDPOINT = 'https://api.smugmug.com'
-  UPLOAD_ENDPOINT = 'https://upload.smugmug.com/'
+  OAUTH_ORIGIN = 'https://secure.smugmug.com'.freeze
+  REQUEST_TOKEN_URL = '/services/oauth/1.0a/getRequestToken'.freeze
+  ACCESS_TOKEN_URL = '/services/oauth/1.0a/getAccessToken'.freeze
+  AUTHORIZE_URL = '/services/oauth/1.0a/authorize'.freeze
+  API_ENDPOINT = 'https://api.smugmug.com'.freeze
+  UPLOAD_ENDPOINT = 'https://upload.smugmug.com/'.freeze
 
   def initialize(ejson_file = '~/.photo_helper.ejson')
     ejson_file = File.expand_path(ejson_file)
-    @secrets = Secrets.new(ejson_file, %i(api_key api_secret))
-    request_access_token if !@secrets["access_token"] || !@secrets["access_secret"]
+    @secrets = Secrets.new(ejson_file, %i[api_key api_secret])
+    request_access_token if !@secrets['access_token'] || !@secrets['access_secret']
 
     @http = get_access_token
     @uploader = get_access_token(UPLOAD_ENDPOINT)
@@ -198,29 +199,29 @@ class SmugmugAPI
     image = File.open(image_path)
 
     headers.merge!('Content-Type' => MimeMagic.by_path(image_path).type,
-    'X-Smug-AlbumUri' => "/api/v2/album/#{album_id}",
-    'X-Smug-ResponseType' => 'JSON',
-    'X-Smug-Version' => 'v2',
-    'charset' => 'UTF-8',
-    'Accept' => 'JSON',
-    'X-Smug-FileName' => File.basename(image_path),
-    'Content-MD5' => Digest::MD5.file(image_path).hexdigest)
+                   'X-Smug-AlbumUri' => "/api/v2/album/#{album_id}",
+                   'X-Smug-ResponseType' => 'JSON',
+                   'X-Smug-Version' => 'v2',
+                   'charset' => 'UTF-8',
+                   'Accept' => 'JSON',
+                   'X-Smug-FileName' => File.basename(image_path),
+                   'Content-MD5' => Digest::MD5.file(image_path).hexdigest)
 
-    headers['X-Smug-Title'] = File.basename(image_path, ".*") if filename_as_title
+    headers['X-Smug-Title'] = File.basename(image_path, '.*') if filename_as_title
 
     resp = @uploader.post('/', image, headers)
     resp.body
   end
 
   def upload_images(images, album_id, headers = {}, workers: 4, filename_as_title: false)
-    Parallel.each(images, in_processes: workers, progress: "Uploading images") do |image|
+    Parallel.each(images, in_processes: workers, progress: 'Uploading images') do |image|
       upload(image, album_id, headers, filename_as_title: filename_as_title)
       puts "Done #{image}\n"
     end
   end
 
   def update_images(images, album_id, headers = {}, workers: 4, filename_as_title: false)
-    Parallel.each(images, in_processes: workers, progress: "Updating images") do |image|
+    Parallel.each(images, in_processes: workers, progress: 'Updating images') do |image|
       # replace not working, delete then upload
       http(:delete, image[:uri])
       upload(image[:file], album_id, headers, filename_as_title: filename_as_title)
@@ -230,31 +231,31 @@ class SmugmugAPI
 
   def collect_images(images, album_id)
     return if images.empty?
-    images = images.join(",") if images.is_a? Array
-    post("/api/v2/album/#{album_id}!collectimages", "CollectUris" => images)
+    images = images.join(',') if images.is_a? Array
+    post("/api/v2/album/#{album_id}!collectimages", 'CollectUris' => images)
   end
 
   def move_images(images, album_id)
-      return if images.empty?
-      images = images.join(",") if images.is_a? Array
-      post("/api/v2/album/#{album_id}!moveimages", "MoveUris" => images)
+    return if images.empty?
+    images = images.join(',') if images.is_a? Array
+    post("/api/v2/album/#{album_id}!moveimages", 'MoveUris' => images)
   end
 
   def update_keywords(image, keywords, overwrite = false)
     return if image.nil?
     keywords = (image[:keywords] + keywords).uniq unless overwrite
-    
+
     # inspect need outwise it isnt encoded right
-    pp post("#{image[:image_uri]}?_method=PATCH", KeywordArray: keywords.inspect)
+    post("#{image[:image_uri]}?_method=PATCH", KeywordArray: keywords.inspect)
   end
 
   def request_access_token
     @consumer = OAuth::Consumer.new(@secrets.api_key, @secrets.api_secret,
-      site: OAUTH_ORIGIN,
-      name: 'photo-helper',
-      request_token_path: REQUEST_TOKEN_URL,
-      authorize_path: AUTHORIZE_URL,
-      access_token_path: ACCESS_TOKEN_URL)
+                                    site: OAUTH_ORIGIN,
+                                    name: 'photo-helper',
+                                    request_token_path: REQUEST_TOKEN_URL,
+                                    authorize_path: AUTHORIZE_URL,
+                                    access_token_path: ACCESS_TOKEN_URL)
 
     # Generate request token
     @request_token = @consumer.get_request_token

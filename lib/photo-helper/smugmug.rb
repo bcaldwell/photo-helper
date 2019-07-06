@@ -41,11 +41,11 @@ module PhotoHelper
       albums = @smugmug.albums_long
 
       albums_tree = {}
-      output = ["# Photos"]
+      output = ['# Photos']
 
       albums.each do |a|
         parts = a[:path].split('/')
-        next if parts[0] == "Trash"
+        next if parts[0] == 'Trash'
 
         album_name = parts.pop
         parts.each_with_index do |part, i|
@@ -69,16 +69,16 @@ module PhotoHelper
       until stack.empty?
         key = stack.pop
         item = key.inject(albums_tree, :fetch)
-        next if key.first == "dl"
+        next if key.first == 'dl'
 
         if item.is_a?(Hash)
-          stack.concat(item.keys.map{|a| key.clone.push(a)})
-          output.push("#{'#'*key.count} #{key.last}")
+          stack.concat(item.keys.map { |a| key.clone.push(a) })
+          output.push("#{'#' * key.count} #{key.last}")
           next
         end
 
         begin
-          dl_item = ["dl"].concat(key).inject(albums_tree, :fetch)
+          dl_item = ['dl'].concat(key).inject(albums_tree, :fetch)
           output.push("  **Selects: ** #{item}\n  **All: ** #{dl_item}")
         rescue
           output.push(item)

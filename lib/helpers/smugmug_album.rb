@@ -37,7 +37,6 @@ class SmugmugAlbumHelper
   def initialize(search_path, album = nil)
     @search_extensions = IMAGE_EXTENSIONS.concat(["XMP"])
 
-
     @search_path = Pathname.new(search_path)
 
     @smugmug = SmugmugAPI.new
@@ -49,7 +48,7 @@ class SmugmugAlbumHelper
     @dl_album_name = File.join("dl", @album_name)
     @dl_album = @smugmug.get_or_create_album(@dl_album_name, album_url: @location&.downcase)
 
-    @keyword_list = Set.new
+    @folder_keywords = Set.new
   end
 
   def parse_path
@@ -107,8 +106,13 @@ class SmugmugAlbumHelper
     image_list_hash = {}
     images.each do |i|
       filename = File.basename(i, ".*")
-      keywords = image_dir_keywords(i)
-      @keyword_list.merge(keywords) if keywords
+
+      # add keywords based on directory name and if the image is a select image
+      keywords = image_dir_keywords(i) || []
+      @folder_keywords.merge(keywords) if keywords.size
+
+      # do this after the keywords list because keywords_list is actually just directory keywords...
+      keywords.push("select") if ImageHelper.is_select?(i)
 
       push_hash_array(image_list_hash, filename, file: i,
         keywords: keywords,
@@ -122,8 +126,8 @@ class SmugmugAlbumHelper
 
     to_upload = {}
     to_update = {}
+    to_update_keywords = {}
     to_delete = []
-    to_update_keywords = []
 
     image_list_hash.each do |filename, images|
       images.each do |image|
@@ -133,20 +137,19 @@ class SmugmugAlbumHelper
         upload_image = true
 
         if uploaded_hash.key?(filename)
-          !uploaded_hash[filename].each do |uploaded|
-            unless uploaded_match_requested?(image, uploaded)
+          uploaded_hash[filename].each do |uploaded|
+            if uploaded_match_requested?(image, uploaded)
               if uploaded[:md5] == image[:md5]
-                to_update_keywords.push(uploaded)
+                # check for missing keywords using -
+                if image[:keywords] - uploaded[:keywords] != []
+                  push_hash_array(to_update_keywords, image[:keywords], {image_uri: uploaded[:image_uri], keywords: uploaded[:keywords], filename: uploaded[:filename]})
+                end
+              else
+                push_hash_array(to_update, image[:keywords], image.merge!(uri: uploaded[:uri]))
               end
-              next
+              upload_image = false
+              break
             end
-
-            # & returns if in both arrays
-            upload_image = false
-            if uploaded[:md5] != image[:md5]
-              push_hash_array(to_update, image[:keywords], image.merge!(uri: uploaded[:uri]))
-            end
-            break
           end
         end
     
@@ -175,14 +178,21 @@ class SmugmugAlbumHelper
     end
 
     to_upload.each do |keywords, images|
-      puts keywords
       upload(album, images, keywords)
     end
 
     to_update.each do |keywords, images|
-      puts keywords
       update(album, images, keywords)
     end
+
+    to_update_keywords.each do |keywords, images|
+      puts "Updating keywords #{keywords}"
+      images.each do |i|
+        @smugmug.update_keywords(i, keywords)
+      end
+    end
+
+    
     # puts "delete #{to_delete.count}???"
     if delete && to_delete.any?
       puts "Deleting #{to_delete.count} images"
@@ -218,17 +228,18 @@ class SmugmugAlbumHelper
       @dl_album
     end
 
-    @keyword_list = Set.new
+    @folder_keywords = Set.new
     puts "Uploading all images to album #{album_name || @album_name} --> #{album[:web_uri]}\n"
 
     @image_list = image_list_to_hash(image_list)
     @image_list = merge_hash_array(@image_list, image_list_to_hash(exported_list))
     @image_list = merge_hash_array(@image_list, image_list_to_hash(instagram_list))
+
     sync(album, @image_list, true)
   end
 
   def collect_select
-    @keyword_list = Set.new
+    @folder_keywords = Set.new
 
     pictures = image_list
     pictures = pictures.select { |p| ImageHelper.is_select?(p) }
@@ -259,7 +270,7 @@ class SmugmugAlbumHelper
   end
 
   def upload_select
-    @keyword_list = Set.new
+    @folder_keywords = Set.new
 
     pictures = image_list
     pictures = pictures.select { |p| ImageHelper.is_select?(p) }
@@ -297,12 +308,18 @@ class SmugmugAlbumHelper
   end
 
   def uploaded_match_requested?(image, uploaded)
+    # for checking if match only care about folder keywords
     if image[:keywords].nil?
       # empty from keyword list
-      return true if uploaded[:keywords].nil? || @keyword_list & uploaded[:keywords] == Set.new
-    elsif image[:keywords] - uploaded[:keywords] == []
+      return true if uploaded[:keywords].nil? || @folder_keywords & uploaded[:keywords] == Set.new
+    elsif @folder_keywords & image[:keywords] - uploaded[:keywords] == Set.new
       return true
     end
     false
   end
 end
+
+# class SmugmugImage
+#   def initialize(image_path)
+#   end
+# end
